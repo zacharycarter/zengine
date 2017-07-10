@@ -1,4 +1,4 @@
-import logging, sdl2, opengl, zgl
+import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl
 
 var 
   window: sdl2.WindowPtr
@@ -15,6 +15,8 @@ proc init*(width, height: int, mainWindowTitle: string) =
   consoleLogger = newConsoleLogger()
   addHandler(consoleLogger)
   sdl2.init(INIT_TIMER or INIT_VIDEO)
+  discard sdl_image.init()
+  sdl_ttf.ttfInit()
 
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2)
@@ -48,6 +50,8 @@ proc init*(width, height: int, mainWindowTitle: string) =
   zglLoadIdentity()
 
   glClearColor(0.19, 0.19, 0.19, 1.0)
+
+  loadDefaultFont()
 
 # Get current time in seconds since SDL2 timer was initialized
 proc getTime(): uint32 =

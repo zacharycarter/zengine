@@ -20,6 +20,8 @@ while running:
 
   beginDrawing()
   clearBackground(ZENGRAY)
+
+  drawText("Hello disentablishmentarianism zengine!", int 960 / 2, int 540 / 2,128, ZColor(r: 0, g: 255, b: 0, a: 255))
   
   drawTriangle(
     vec3f((960/2) - 50, (540/2), 0), 
@@ -27,6 +29,8 @@ while running:
     vec3f((960/2) + 50, (540/2), 0), 
     ZColor(r: 255, g: 255, b: 0, a: 255)
   )
+
+  
 
   endDrawing()
 

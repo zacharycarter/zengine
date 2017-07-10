@@ -1,8 +1,10 @@
-import logging, opengl, sdl2, strutils, util, glm
+import logging, math, opengl, sdl2, strutils, util, glm
 
 const 
+  MATRIX_STACK_SIZE = 16
   MAX_QUADS_BATCH = 8192
   MAX_DRAWS_BY_TEXTURE = 256
+  TEMP_VERTEX_BUFFER_SIZE = 4096
   DEFAULT_ATTRIB_POSITION_NAME = "inPosition"
   DEFAULT_ATTRIB_TEXCOORD_NAME = "inTexCoord0"
   DEFAULT_ATTRIB_COLOR_NAME = "inColor"
@@ -48,10 +50,13 @@ type
     vboId: array[4, GLuint]
 
   Texture2D* = object
+    id*: GLuint
     data*: sdl2.SurfacePtr
     mipMaps*: int
 
 var
+  stack: array[MATRIX_STACK_SIZE, Mat4f]
+  stackCounter = 0
   currentDrawMode: DrawMode
   draws: seq[DrawCall]
   drawsCounter: int
@@ -62,6 +67,11 @@ var
   modelView, projection: Mat4f
   currentMatrix: ptr Mat4f
   currentMatrixMode: MatrixMode
+  useTempBuffer = false
+  tempBufferCount = 0
+  tempBuffer: seq[Vec3f]
+
+
 
 proc loadShaderProgram*(vertexShaderStr, fragmentShaderStr: string): GLuint =
   var
@@ -258,6 +268,9 @@ proc loadDefaultBuffers() =
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quads.vboId[3])
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*6*MAX_QUADS_BATCH, addr quads.indices[0], GL_STATIC_DRAW)
 
+  info("[VAO ID $1] Default buffers VAO initialized successfully (quads)" % $quads.vaoId.int)
+
+
   glBindVertexArray(0)
 
 proc zglLoadTexture*(data: pointer, width, height: int, pixelFormat: uint32, mipmapCount: int): GLuint =
@@ -306,15 +319,26 @@ proc zglInit*(width, height: int) =
 
   loadDefaultBuffers()
 
+  tempBuffer = newSeq[Vec3f](TEMP_VERTEX_BUFFER_SIZE)
+
+  for i in 0..<TEMP_VERTEX_BUFFER_SIZE:
+    tempBuffer[i] = vec3f(0)
+
   draws = newSeq[DrawCall](MAX_DRAWS_BY_TEXTURE)
 
   drawsCounter = 1
   draws[drawsCounter - 1].textureId = whiteTexture
   currentDrawMode = DrawMode.ZGLTriangles
 
+  for i in 0..<MATRIX_STACK_SIZE:
+    stack[i] = mat4f(1.0)
+
   projection = mat4f(1.0)
   modelView = mat4f(1.0)
   currentMatrix = addr modelView
+
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); # Color blending function (how colors are mixed)
+  glEnable(GL_BLEND);    
 
 proc zglClearColor*(r, g, b, a: int) =
   glClearColor(r / 255, g / 255, b / 255, a / 255)
@@ -325,7 +349,41 @@ proc zglClearScreenBuffers*() =
 proc zglBegin*(mode: DrawMode) =
   currentDrawMode = mode
 
+proc zglVertex3f*(x, y, z: GLdouble) =
+  if useTempBuffer:
+    tempBuffer[tempBufferCount].x = x
+    tempBuffer[tempBufferCount].y = y
+    tempBuffer[tempBufferCount].z = z
+    inc(tempBufferCount)
+
+  else:
+    case currentDrawMode
+    of DrawMode.ZGLQuads:
+      if quads.vCounter/4 < MAX_QUADS_BATCH:
+        quads.vertices[3*quads.vCounter] = x
+        quads.vertices[3*quads.vCounter + 1] = y
+        quads.vertices[3*quads.vCounter + 2] = z
+
+        inc(quads.vCounter)
+
+        inc(draws[drawsCounter - 1].vertexCount)
+      else:
+        error("MAX_QUADS_BATCH overflow")
+    else:
+      discard
+
 proc zglEnd*() =
+  if useTempBuffer:
+    for i in 0..<tempBufferCount:
+      tempBuffer[i] = (vec4(tempBuffer[i], 0) * currentMatrix[]).xyz
+    
+    useTempBuffer = false
+
+    for i in 0..<tempBufferCount:
+      zglVertex3f(tempBuffer[i].x, tempBuffer[i].y, tempBuffer[i].z)
+
+    tempBufferCount = 0
+
   case currentDrawMode:
     of DrawMode.ZGLLines:
       discard
@@ -343,6 +401,14 @@ proc zglEnd*() =
           quads.colors[4*quads.cCounter + 3] = quads.colors[4*quads.cCounter - 1]
 
           inc(quads.cCounter)
+      
+      if quads.vCounter != quads.tcCounter:
+        let addTexCoords = quads.vCounter - quads.tcCounter
+        
+        for i in 0..<addTexCoords:
+          quads.texcoords[2*quads.tcCounter] = 0.0
+          quads.texcoords[2*quads.tcCounter + 1] = 0.0
+          inc(quads.tcCounter)
   
   currentDepth += (1.0f/20000.0f)
 
@@ -390,12 +456,19 @@ proc drawDefaultBuffers() =
 
   currentDepth = -1.0
 
+  projection = matProjection
+
+  modelview = matModelView
+
 proc updateDefaultBuffers() =
   if quads.vCounter > 0:
     glBindVertexArray(quads.vaoId)
 
     glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[0])
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLdouble)*3*quads.vCounter, addr quads.vertices[0])
+
+    glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[1])
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*2*quads.vCounter, addr quads.texcoords[0])
 
     glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[2])
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int)*4*quads.vCounter, addr quads.colors[0])
@@ -415,22 +488,6 @@ proc zglColor4ub*(x, y, z, w: int) =
     quads.colors[4*quads.cCounter + 3] = w
 
     inc(quads.cCounter)
-  else:
-    discard
-
-proc zglVertex3f*(x, y, z: GLdouble) =
-  case currentDrawMode
-  of DrawMode.ZGLQuads:
-    if quads.vCounter/4 < MAX_QUADS_BATCH:
-      quads.vertices[3*quads.vCounter] = x
-      quads.vertices[3*quads.vCounter + 1] = y
-      quads.vertices[3*quads.vCounter + 2] = z
-
-      inc(quads.vCounter)
-
-      inc(draws[drawsCounter - 1].vertexCount)
-    else:
-      error("MAX_QUADS_BATCH overflow")
   else:
     discard
 
@@ -480,3 +537,54 @@ proc zglShutdown*() =
   unloadDefaultBuffers()
 
   glDeleteTextures(1, addr whiteTexture)
+
+proc zglEnableTexture*(textureId: GLuint) =
+  if draws[drawsCounter - 1].textureId != textureId:
+    if draws[drawsCounter - 1].vertexCount > 0:
+      inc(drawsCounter)
+
+      draws[drawsCounter - 1].textureId = textureId
+      draws[drawsCounter - 1].vertexCount = 0
+
+proc zglDisableTexture*() =
+  if quads.vCounter/4 >= MAX_QUADS_BATCH: 
+    zglDraw()
+
+proc zglPushMatrix*() =
+  if stackCounter == MATRIX_STACK_SIZE - 1:
+    error("Stack Buffer Overflow (MAX $1 Matrix)" % $MATRIX_STACK_SIZE)
+
+  stack[stackCounter] = currentMatrix[]
+  zglLoadIdentity()
+  inc(stackCounter)
+
+  if currentMatrixMode == MatrixMode.ZGLModelView:
+    useTempBuffer = true
+
+proc zglTranslatef*(x, y, z: float) =
+  currentMatrix[] = translate(currentMatrix[], vec3f(x, y, z))
+
+proc zglRotatef*(angleDeg: float, x, y, z: float) =
+  currentMatrix[] = rotate(currentMatrix[], vec3f(x, y, z), degToRad(angleDeg))
+
+proc zglScalef*(x, y, z: float) =
+  currentMatrix[] = scale(currentMatrix[], vec3f(x, y, z))
+
+proc zglNormal3f*(x, y, z: float) =
+  # TODO 
+  discard
+
+# Define one vertex (texture coordinate)
+# NOTE: Texture coordinates are limited to QUADS only
+proc zglTexCoord2f*(x, y: float) =
+  if currentDrawMode == DrawMode.ZGLQuads:
+    quads.texcoords[2*quads.tcCounter] = x;
+    quads.texcoords[2*quads.tcCounter + 1] = y;
+
+    inc(quads.tcCounter)
+
+proc zglPopMatrix*() =
+  if stackCounter > 0:
+    let mat = stack[stackCounter - 1]
+    currentMatrix[] = mat
+    dec(stackCounter)
