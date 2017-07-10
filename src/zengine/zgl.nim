@@ -537,6 +537,8 @@ proc zglShutdown*() =
   unloadDefaultBuffers()
 
   glDeleteTextures(1, addr whiteTexture)
+  info("[TEX ID $1] Unloaded texture data (base white texture) from VRAM" % $whiteTexture.int);
+
 
 proc zglEnableTexture*(textureId: GLuint) =
   if draws[drawsCounter - 1].textureId != textureId:
@@ -588,3 +590,7 @@ proc zglPopMatrix*() =
     let mat = stack[stackCounter - 1]
     currentMatrix[] = mat
     dec(stackCounter)
+
+proc zglDeleteTexture*(id: var GLuint) =
+  if id != 0:
+    glDeleteTextures(1, addr id)

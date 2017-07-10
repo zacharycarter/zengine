@@ -91,3 +91,8 @@ proc drawTexture*(tex: Texture2D, sourceRect: var Rectangle, destRect: Rectangle
 
     zglDisableTexture()
   
+proc unloadTexture*(texture: var Texture2D) =
+  if texture.id != 0:
+    zglDeleteTexture(texture.id)
+
+    info("[TEX ID $1] Unloaded texture data from VRAM (GPU)" % $texture.id)

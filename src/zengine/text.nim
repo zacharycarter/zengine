@@ -266,7 +266,7 @@ proc loadDefaultFont*() =
   info("[TEX ID $1] Default font loaded successfully" % $defaultFont.texture.id)
 
 proc unloadDefaultFont*() =
-  discard
+  unloadTexture(defaultFont.texture)
 
 proc drawText*(text: string, posX, posY, fontSize: int, tint: ZColor) =
   discard

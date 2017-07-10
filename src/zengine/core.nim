@@ -76,6 +76,7 @@ proc clearBackground*(color: ZColor) =
   zglClearColor(color.r, color.g, color.b, color.a)  
 
 proc shutdown*() =
+  unloadDefaultFont()
   zglShutdown()
   glCtx.glDeleteContext()
   window.destroyWindow()
