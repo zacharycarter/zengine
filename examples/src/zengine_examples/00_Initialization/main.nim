@@ -22,13 +22,19 @@ while running:
   clearBackground(ZENGRAY)
 
   
-  drawText("Hello zengine!", 10, 10, 10, ZColor(r: 0, g: 255, b: 255, a: 255))
+  drawText("Hello zengine!", 10, 10, 20, ZColor(r: 0, g: 255, b: 255, a: 255))
   
   drawTriangle(
     vec3f((960/2) - 50, (540/2), 0), 
     vec3f((960/2), (540/2) - 50, 0), 
     vec3f((960/2) + 50, (540/2), 0), 
     ZColor(r: 255, g: 255, b: 0, a: 255)
+  )
+
+  drawCircleV(
+    vec2f((960/2) - 50.0, (540/2)) + vec2f(100.0, 100.0), 
+    10.0, 
+    ZColor(r: 255, g: 255, b: 255, a: 255)
   )
 
   
