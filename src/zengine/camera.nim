@@ -1,0 +1,3 @@
+type
+  CameraMode = enum
+    
