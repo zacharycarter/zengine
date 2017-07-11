@@ -54,36 +54,35 @@ proc loadTexture*(imagePixels: openArray[ZColor], width, height: int): Texture2D
 
   result.id = zglLoadTexture(result.data.pixels, result.data.w, result.data.h, result.data.format.format, result.mipmaps)
 
-proc drawTexture*(tex: Texture2D, sourceRect: var Rectangle, destRect: Rectangle, origin: Vec2f, rotation: float, tint: ZColor) =
+proc drawTexture*(tex: Texture2D, sourceRect: Rectangle, destRect: Rectangle, origin: Vec2f, rotation: float, tint: ZColor) =
   if tex.id != 0:
-    if(sourceRect.width < 0): sourceRect.x -= sourceRect.width
-    if(sourceRect.height < 0): sourceRect.y -= sourceRect.height
+    var adjustedSrc = sourceRect
+    if(sourceRect.width < 0): adjustedSrc.x -= sourceRect.width
+    if(sourceRect.height < 0): adjustedSrc.y -= sourceRect.height
 
     zglEnableTexture(tex.id)
     
     zglPushMatrix()
 
-    echo repr destRect.x, destRect.y
-
     zglTranslatef(float destRect.x, float destRect.y, 0)
-    #zglRotatef(rotation, 0, 0, 1)
-    #zglTranslatef(-origin.x, -origin.y, 0)
+    zglRotatef(rotation, 0, 0, 1)
+    zglTranslatef(-origin.x, -origin.y, 0)
 
     zglBegin(DrawMode.ZGLQuads)
 
     zglColor4ub(tint.r, tint.g, tint.b, tint.a)
     zglNormal3f(0.0, 0.0, 1.0) # 0.0f, 0.0f, 1.0f
 
-    zglTexCoord2f(float sourceRect.x/tex.data.w, float sourceRect.y/tex.data.h)
+    zglTexCoord2f(float adjustedSrc.x/tex.data.w, float adjustedSrc.y/tex.data.h)
     zglVertex2f(0.0, 0.0)
 
-    zglTexCoord2f(float sourceRect.x/tex.data.w, float(sourceRect.y + sourceRect.height)/float tex.data.h)
+    zglTexCoord2f(float adjustedSrc.x/tex.data.w, float(adjustedSrc.y + adjustedSrc.height)/float tex.data.h)
     zglVertex2f(0.0, destRect.height.float)
 
-    zglTexCoord2f(float(sourceRect.x + sourceRect.width)/float tex.data.w, float(sourceRect.y + sourceRect.height)/float tex.data.h)
+    zglTexCoord2f(float(adjustedSrc.x + adjustedSrc.width)/float tex.data.w, float(adjustedSrc.y + adjustedSrc.height)/float tex.data.h)
     zglVertex2f(destRect.width.float, destRect.height.float)
 
-    zglTexCoord2f(float(sourceRect.x + sourceRect.width)/float tex.data.w, float sourceRect.y/tex.data.h)
+    zglTexCoord2f(float(adjustedSrc.x + adjustedSrc.width)/float tex.data.w, float adjustedSrc.y/tex.data.h)
     zglVertex2f(destRect.width.float, 0)
 
     zglEnd()

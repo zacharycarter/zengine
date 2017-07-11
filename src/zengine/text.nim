@@ -1,4 +1,4 @@
-import logging, zgl, color, glm, geom, sdl2, sdl2.image as sdl_image, opengl, texture
+import logging, zgl, color, glm, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils
 
 type
   CharInfo = object
@@ -268,7 +268,69 @@ proc loadDefaultFont*() =
 proc unloadDefaultFont*() =
   unloadTexture(defaultFont.texture)
 
-proc drawText*(text: string, posX, posY, fontSize: int, tint: ZColor) =
-  discard
-  
-  
+proc getCharIndex(font: Font, letter: int): int =
+  var index = 0
+
+  for i in 0..<font.charCount:
+    if font.chars[i].value == letter:
+      index = i
+      break
+
+  return index
+
+proc drawTextEx(font: Font, text: string, position: Vec2f, fontSize: float, spacing: int, tint: ZColor) =
+  let length = text.len
+  var textOffsetX = 0
+  var textOffsetY = 0
+  var scaleFactor: float
+  var index: int
+
+  scaleFactor = fontSize / font.baseSize.float
+
+  var i = 0
+  while i < length:
+    if NewLines.contains(text[i]):
+      textoffsetY += ((font.baseSize.float + font.baseSize/2) * scaleFactor).int
+      textOffsetX = 0
+
+    else:
+      if text[i] == 0xc2.char:
+        index = getCharIndex(font, text[i + 1].int)
+        inc(i)
+
+      elif text[i] == 0xc3.char:
+        index = getCharIndex(font, text[i + 1].int + 64)
+        inc(i)
+      
+      else:
+        index = getCharIndex(font, text[i].int)
+
+      drawTexture(font.texture, font.chars[index].rec,
+        Rectangle(
+          x: int position.x + textOffsetX.float + font.chars[index].offsetX.float*scaleFactor,
+          y: int position.y + textOffsetY.float + font.chars[index].offsetY.float*scaleFactor,
+          width: int font.chars[index].rec.width.float*scaleFactor,
+          height: int font.chars[index].rec.height.float*scaleFactor,
+        ),
+        vec2f(0),
+        0.0,
+        tint
+      )
+
+      if font.chars[index].advanceX == 0:
+        textOffsetX += (font.chars[index].rec.width.float*scaleFactor + spacing.float).int
+      else:
+        textOffsetX += (int)(font.chars[index].advanceX.float*scaleFactor + spacing.float).int
+
+    inc(i)
+
+
+proc drawText*(text: string, posX, posY: float, fontSize: float, color: ZColor) =
+  if defaultFont.texture.id != 0:
+    let position = vec2f(posx.float, posY.float)
+
+    let defaultFontSize = 10.0
+    var fontSize = if fontSize < defaultFontSize: fontSize else: defaultFontSize
+    let spacing = fontSize / defaultFontSize
+
+    drawTextEx(defaultFont, text, position, fontSize, spacing.int, color)

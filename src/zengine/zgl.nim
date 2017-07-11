@@ -71,7 +71,23 @@ var
   tempBufferCount = 0
   tempBuffer: seq[Vec3f]
 
+proc getDefaultTexture*(): Texture2D =
+  var rMask, gMask, bMask, aMask: uint32
 
+  when cpuEndian == Endianness.bigEndian:
+    rMask = 0xff000000u32
+    gMask = 0x00ff0000u32
+    bMask = 0x0000ff00u32
+    aMask = 0x000000ffu32
+  else:
+    rMask = 0x000000ffu32
+    gMask = 0x0000ff00u32
+    bMask = 0x00ff0000u32
+    aMask = 0xff000000u32
+
+  result.id = whiteTexture
+  result.data = sdl2.createRGBSurface(0, 1, 1, 32, rmask, gmask, bmask, amask)
+  result.mipMaps = 1
 
 proc loadShaderProgram*(vertexShaderStr, fragmentShaderStr: string): GLuint =
   var
@@ -286,7 +302,7 @@ proc zglLoadTexture*(data: pointer, width, height: int, pixelFormat: uint32, mip
   of SDL_PIXELFORMAT_RGBA8888:
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
   else:
-    discard
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
@@ -375,7 +391,7 @@ proc zglVertex3f*(x, y, z: GLdouble) =
 proc zglEnd*() =
   if useTempBuffer:
     for i in 0..<tempBufferCount:
-      tempBuffer[i] = (vec4(tempBuffer[i], 0) * currentMatrix[]).xyz
+      tempBuffer[i] = (vec4f(tempBuffer[i], 1.0) * transpose(currentMatrix[])).xyz
     
     useTempBuffer = false
 
@@ -497,6 +513,9 @@ proc zglVertex2f*(x, y: float32) =
 proc zglViewport*(x, y, width, height: int) =
   glViewport(x, y, width, height)
 
+proc zglLoadIdentity*() =
+  currentMatrix[] = mat4f()
+
 proc zglMatrixMode*(mode: MatrixMode) =
   if mode == MatrixMode.ZGLProjection:
     currentMatrix = addr projection
@@ -505,8 +524,17 @@ proc zglMatrixMode*(mode: MatrixMode) =
 
   currentMatrixMode = mode
 
-proc zglLoadIdentity*() =
-  currentMatrix[] = mat4f(1.0)
+proc zglPushMatrix*() =
+  if stackCounter == MATRIX_STACK_SIZE - 1:
+    error("Stack Buffer Overflow (MAX $1 Matrix)" % $MATRIX_STACK_SIZE)
+
+  stack[stackCounter] = currentMatrix[]
+  zglLoadIdentity()
+  inc(stackCounter)
+
+  if currentMatrixMode == MatrixMode.ZGLModelView:
+    useTempBuffer = true
+
 
 proc zglOrtho*(left, right, bottom, top, near, far: float) =
   var matOrtho = ortho[GLfloat](left, right, bottom, top, near, far)
@@ -542,29 +570,18 @@ proc zglShutdown*() =
 
 proc zglEnableTexture*(textureId: GLuint) =
   if draws[drawsCounter - 1].textureId != textureId:
-    if draws[drawsCounter - 1].vertexCount > 0:
-      inc(drawsCounter)
+    if draws[drawsCounter - 1].vertexCount > 0: inc(drawsCounter)
 
-      draws[drawsCounter - 1].textureId = textureId
-      draws[drawsCounter - 1].vertexCount = 0
+    draws[drawsCounter - 1].textureId = textureId
+    draws[drawsCounter - 1].vertexCount = 0
 
 proc zglDisableTexture*() =
   if quads.vCounter/4 >= MAX_QUADS_BATCH: 
     zglDraw()
 
-proc zglPushMatrix*() =
-  if stackCounter == MATRIX_STACK_SIZE - 1:
-    error("Stack Buffer Overflow (MAX $1 Matrix)" % $MATRIX_STACK_SIZE)
-
-  stack[stackCounter] = currentMatrix[]
-  zglLoadIdentity()
-  inc(stackCounter)
-
-  if currentMatrixMode == MatrixMode.ZGLModelView:
-    useTempBuffer = true
-
 proc zglTranslatef*(x, y, z: float) =
-  currentMatrix[] = translate(currentMatrix[], vec3f(x, y, z))
+  var tmp = translate(currentMatrix[], vec3f(x, y, z))
+  currentMatrix[] = currentMatrix[] * tmp
 
 proc zglRotatef*(angleDeg: float, x, y, z: float) =
   currentMatrix[] = rotate(currentMatrix[], vec3f(x, y, z), degToRad(angleDeg))

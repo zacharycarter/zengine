@@ -63,6 +63,7 @@ proc beginDrawing*() =
   previousTime = currentTime
 
   zglClearScreenBuffers()
+  zglLoadIdentity()
 
 proc swapBuffers() =
   sdl2.glSwapWindow(window)
