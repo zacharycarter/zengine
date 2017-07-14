@@ -25,7 +25,7 @@ while running:
   drawText("Hello zengine!", 10, 10, 20, ZColor(r: 0, g: 255, b: 255, a: 255))
   
   begin3dMode()
-  drawCube(vec3f(0, 0, 5), 2.0f, 2.0f, 2.0f, RED)
+  drawCube(vec3f(0, -5, 0), 2.0f, 2.0f, 0.2f, RED)
   end3dMode()
 
   drawTriangle(
