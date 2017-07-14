@@ -24,10 +24,14 @@ while running:
   
   drawText("Hello zengine!", 10, 10, 20, ZColor(r: 0, g: 255, b: 255, a: 255))
   
+  begin3dMode()
+  drawCube(vec3f(0, 0, 5), 2.0f, 2.0f, 2.0f, RED)
+  end3dMode()
+
   drawTriangle(
-    vec3f((960/2) - 50, (540/2), 0), 
-    vec3f((960/2), (540/2) - 50, 0), 
-    vec3f((960/2) + 50, (540/2), 0), 
+    vec3f((960/2) - 40, (540/2), 0), 
+    vec3f((960/2), (540/2) - 40, 0), 
+    vec3f((960/2) + 40, (540/2), 0), 
     ZColor(r: 255, g: 255, b: 0, a: 255)
   )
 

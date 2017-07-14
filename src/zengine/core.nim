@@ -1,4 +1,4 @@
-import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl
+import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, glm
 
 var 
   window: sdl2.WindowPtr
@@ -56,6 +56,37 @@ proc init*(width, height: int, mainWindowTitle: string) =
 # Get current time in seconds since SDL2 timer was initialized
 proc getTime(): uint32 =
   result = sdl2.getTicks() * 1000
+
+proc begin3dMode*() =
+  zglDraw()
+
+  zglMatrixMode(MatrixMode.ZGLProjection)
+  zglPushMatrix()
+  zglLoadIdentity()
+
+  let aspect = 960.0 / 540.0
+  let top = 0.01 * tan(45.0*PI/360.0)
+  let right = top*aspect
+
+  zglFrustum(-right, right, -top, top, 0.01, 1000.0)
+
+  zglMatrixMode(MatrixMode.ZGLModelView)
+  zglLoadIdentity()
+
+  zglMultMatrix()
+
+  #zglEnableDepthTest()
+
+proc end3dMode*() =
+  zglDraw()
+
+  zglMatrixMode(MatrixMode.ZGLProjection)
+  zglPopMatrix()
+
+  zglMatrixMode(MatrixMode.ZGLModelView)
+  zglLoadIdentity()
+
+  #zglDisableDepthTest()
 
 proc beginDrawing*() =
   currentTime = getTime()
