@@ -3,4 +3,4 @@
 
 Current status - 
 
-![3D & 2D Primitive Rendering](http://imgur.com/a/dGQLi)
+![2D & 3D Primitive Rendering](http://i.imgur.com/pJrFhN1.png)
