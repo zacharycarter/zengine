@@ -56,7 +56,7 @@ proc init*(width, height: int, mainWindowTitle: string) =
 proc getTime(): uint32 =
   result = sdl2.getTicks() * 1000
 
-proc begin3dMode*() =
+proc begin3dMode*(camera: Camera) =
   zglDraw()
 
   zglMatrixMode(MatrixMode.ZGLProjection)
@@ -64,7 +64,7 @@ proc begin3dMode*() =
   zglLoadIdentity()
 
   let aspect = 960.0 / 540.0
-  let top = 0.01 * tan(45.0*PI/360.0)
+  let top = 0.01 * tan(camera.fovY*PI/360.0)
   let right = top*aspect
 
   zglFrustum(-right, right, -top, top, 0.01, 1000.0)
@@ -72,10 +72,10 @@ proc begin3dMode*() =
   zglMatrixMode(MatrixMode.ZGLModelView)
   zglLoadIdentity()
 
-  var cameraView = matrixLookAt(Vector3(x:0, y:10, z:10), Vector3(x: 0, y: 0, z: 0), Vector3(x: 0, y: 1, z: 0))
+  var cameraView = matrixLookAt(camera.position, camera.target, camera.up)
   zglMultMatrix(matrixToFloat(cameraView))
 
-  #zglEnableDepthTest()
+  zglEnableDepthTest()
 
 proc end3dMode*() =
   zglDraw()
@@ -86,7 +86,7 @@ proc end3dMode*() =
   zglMatrixMode(MatrixMode.ZGLModelView)
   zglLoadIdentity()
 
-  #zglDisableDepthTest()
+  zglDisableDepthTest()
 
 proc beginDrawing*() =
   currentTime = getTime()

@@ -56,6 +56,10 @@ type
     data*: sdl2.SurfacePtr
     mipMaps*: int
 
+  Camera* = object
+    position*, target*, up*: Vector3
+    fovY*: float
+
 var
   stack: array[MATRIX_STACK_SIZE, Matrix]
   stackCounter = 0
@@ -393,8 +397,20 @@ proc zglInit*(width, height: int) =
   modelView = matrixIdentity()
   currentMatrix = addr modelView
 
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); # Color blending function (how colors are mixed)
-  glEnable(GL_BLEND);    
+  glDisable(GL_DEPTH_TEST)
+
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) # Color blending function (how colors are mixed)
+  glEnable(GL_BLEND)
+
+  glCullFace(GL_BACK)
+  glFrontFace(GL_CCW)
+  glEnable(GL_CULL_FACE)
+
+  glClearColor(0.0, 0.0, 0.0, 1.0)
+  glClearDepth(1.0f)
+  glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+
+
 
 proc zglClearColor*(r, g, b, a: int) =
   glClearColor(r / 255, g / 255, b / 255, a / 255)
@@ -662,7 +678,6 @@ proc zglColor4ub*(x, y, z, w: int) =
     discard
 
 proc zglColor3f*(x, y, z: float) =
-  echo x, y, z
   zglColor4ub(int x * 255, int y * 255, int z * 255, 255)
 
 proc zglVertex2f*(x, y: float32) =
@@ -741,7 +756,6 @@ proc zglDisableTexture*() =
 
 proc zglTranslatef*(x, y, z: float) =
   var tmp = matrixTranslate(x, y, z)
-  #matrixTranspose(tmp)
   currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
 
 proc zglRotatef*(angleDeg: float, x, y, z: float) =
@@ -750,10 +764,8 @@ proc zglRotatef*(angleDeg: float, x, y, z: float) =
   var axis = Vector3(x: x, y: y, z: z)
   vectorNormalize(axis)
   matRotation = matrixRotate(axis, degToRad(angleDeg))
-  #matrixTranspose(matRotation)
 
   currentMatrix[] = matrixMultiply(currentMatrix[], matRotation)
-  #currentMatrix[] = rotate(currentMatrix[], vec3f(x, y, z), degToRad(angleDeg))
 
 proc zglScalef*(x, y, z: float) =
   discard
@@ -786,8 +798,6 @@ proc zglFrustum*(left, right, bottom, top, near, far: float) =
   var frustum = matrixFrustum(left, right, bottom, top, near, far)
   matrixTranspose(frustum)
   currentMatrix[] = matrixMultiply(currentMatrix[], frustum)
-  #currentMatrix[] = currentMatrix[] * transpose(glm.frustum[float32](left, right, bottom, top, near, far))
-  #currentMatrix[] = currentMatrix[] * transpose(glm.perspective[float32](45.0, 960.0 / 540.0, 0.1, 1000.0))
 
 proc zglMultMatrix*(m: array[16, GLfloat]) =
   var tmp = Matrix(
@@ -798,4 +808,9 @@ proc zglMultMatrix*(m: array[16, GLfloat]) =
   )
   matrixTranspose(tmp)
   currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
-  #currentMatrix[] = currentMatrix[] * transpose(glm.lookAt[float32](vec3f(0, 10, 10), vec3f(0, 0, 0), vec3f(0, 1, 0)))
+
+proc zglEnableDepthTest*() =
+  glEnable(GL_DEPTH_TEST)
+
+proc zglDisableDepthTest*() =
+  glDisable(GL_DEPTH_TEST)
