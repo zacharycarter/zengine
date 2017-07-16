@@ -26,6 +26,8 @@ while running:
   
   begin3dMode()
   drawCube(Vector3(x:0.0, y: 0.0, z: 0.0), 2.0f, 2.0f, 2.0f, RED)
+  drawCubeWires(Vector3(x:0.0, y:0.0, z:0.0), 3.0, 3.0, 3.0, BLACK)
+  drawGrid(10, 1.0)
   end3dMode()
 
   endDrawing()

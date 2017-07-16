@@ -3,6 +3,7 @@ import logging, math, opengl, sdl2, strutils, util, zmath
 const 
   MATRIX_STACK_SIZE = 16
   MAX_TRIANGLES_BATCH = 4096
+  MAX_LINES_BATCH = 8192
   MAX_QUADS_BATCH = 8192
   MAX_DRAWS_BY_TEXTURE = 256
   TEMP_VERTEX_BUFFER_SIZE = 4096
@@ -61,6 +62,7 @@ var
   currentDrawMode: DrawMode
   draws: seq[DrawCall]
   drawsCounter: int
+  lines: DynamicBuffer
   quads: DynamicBuffer
   triangles: DynamicBuffer
   currentDepth = -1.0
@@ -240,6 +242,9 @@ proc loadDefaultShader(): Shader =
     loadDefaultShaderLocations(result)
 
 proc loadDefaultBuffers() =
+  lines.vertices = newSeq[GLdouble](3*2*MAX_LINES_BATCH)
+  lines.colors = newSeq[cuchar](4*2*MAX_LINES_BATCH)
+
   triangles.vertices = newSeq[GLdouble](3*3*MAX_TRIANGLES_BATCH)
   triangles.colors = newSeq[cuchar](4*3*MAX_TRIANGLES_BATCH)
 
@@ -259,6 +264,23 @@ proc loadDefaultBuffers() =
     quads.indices[i+5] = GLushort 4*k+3
     inc(k)
     inc(i, 6)
+
+  glGenVertexArrays(1, addr lines.vaoId)
+  glBindVertexArray(lines.vaoId)
+
+  glGenBuffers(1, addr lines.vboId[0])
+  glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[0])
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLdouble)*3*2*MAX_LINES_BATCH, addr lines.vertices[0], GL_DYNAMIC_DRAW)
+  glEnableVertexAttribArray(currentShader.vertexLoc)
+  glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_DOUBLE, false, 0, nil)
+
+  glGenBuffers(1, addr lines.vboId[1]);
+  glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[1]);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(int)*4*2*MAX_LINES_BATCH, addr lines.colors[0], GL_DYNAMIC_DRAW);
+  glEnableVertexAttribArray(currentShader.colorLoc);
+  glVertexAttribPointer(currentShader.colorLoc, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil);
+
+  info("[VAO ID $1] Default buffers VAO initialized successfully (lines)" % $lines.vaoId.int)
 
   glGenVertexArrays(1, addr triangles.vaoId)
   glBindVertexArray(triangles.vaoId)
@@ -392,6 +414,16 @@ proc zglVertex3f*(x, y, z: GLdouble) =
 
   else:
     case currentDrawMode
+    of DrawMode.ZGLLines:
+      if lines.vCounter/3 < MAX_LINES_BATCH:
+        lines.vertices[3*lines.vCounter] = x
+        lines.vertices[3*lines.vCounter + 1] = y
+        lines.vertices[3*lines.vCounter + 2] = z
+
+        inc(lines.vCounter)
+      else:
+        error("MAX_TRIANGLES_BATCH overflow")
+
     of DrawMode.ZGLTriangles:
       if triangles.vCounter/3 < MAX_TRIANGLES_BATCH:
         triangles.vertices[3*triangles.vCounter] = x
@@ -429,7 +461,15 @@ proc zglEnd*() =
 
   case currentDrawMode:
     of DrawMode.ZGLLines:
-      discard
+      if lines.vCounter != lines.cCounter:
+        let addColors = lines.vCounter - lines.cCounter
+        for i in 0..<addColors:
+          lines.colors[4*lines.cCounter] = lines.colors[4*lines.cCounter - 4]
+          lines.colors[4*lines.cCounter + 1] = lines.colors[4*lines.cCounter - 3]
+          lines.colors[4*lines.cCounter + 2] = lines.colors[4*lines.cCounter - 2]
+          lines.colors[4*lines.cCounter + 3] = lines.colors[4*lines.cCounter - 1]
+
+          inc(lines.cCounter)
     of DrawMode.ZGLTriangles:
       if triangles.vCounter != triangles.cCounter:
         let addColors = triangles.vCounter - triangles.cCounter
@@ -489,7 +529,7 @@ proc drawDefaultBuffers() =
   var matProjection = projection
   var matModelView = modelView
 
-  if quads.vCounter > 0 or triangles.vCounter > 0:
+  if lines.vCounter > 0 or quads.vCounter > 0 or triangles.vCounter > 0:
     glUseProgram(currentShader.id)
 
     var matMVP = matrixMultiply(modelView, projection)
@@ -497,6 +537,15 @@ proc drawDefaultBuffers() =
     var matMVPFloatArray = matrixToFloat(matMVP)
     glUniformMatrix4fv(currentShader.mvpLoc, 1, false, addr matMVPFloatArray[0])
     glUniform1i(currentShader.mapTexture0Loc, 0)
+
+  if lines.vCounter > 0:
+    glBindTexture(GL_TEXTURE_2D, whiteTexture)
+
+    glBindVertexArray(lines.vaoId)
+
+    glDrawArrays(GL_LINES, 0, lines.vCounter)
+
+    glBindTexture(GL_TEXTURE_2D, 0)
 
   if triangles.vCounter > 0:
     glBindTexture(GL_TEXTURE_2D, whiteTexture)
@@ -535,8 +584,10 @@ proc drawDefaultBuffers() =
   drawsCounter = 1
   draws[0].vertexCount = 0
 
-  triangles.vCounter = 0;
-  triangles.cCounter = 0;
+  lines.vCounter = 0
+  lines.cCounter = 0
+  triangles.vCounter = 0
+  triangles.cCounter = 0
   quads.vCounter = 0
   quads.tcCounter = 0
   quads.cCounter = 0
@@ -548,6 +599,15 @@ proc drawDefaultBuffers() =
   modelview = matModelView
 
 proc updateDefaultBuffers() =
+  if lines.vCounter > 0:
+    glBindVertexArray(lines.vaoId)
+
+    glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[0])
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLdouble)*3*lines.vCounter, addr lines.vertices[0])
+
+    glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[1])
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int)*4*lines.cCounter, addr lines.colors[0])
+
   if triangles.vCounter > 0:
     glBindVertexArray(triangles.vaoId)
 
@@ -577,6 +637,13 @@ proc zglDraw*() =
 
 proc zglColor4ub*(x, y, z, w: int) =
   case currentDrawMode
+  of DrawMode.ZGLLines:
+    lines.colors[4*lines.cCounter] = x
+    lines.colors[4*lines.cCounter + 1] = y
+    lines.colors[4*lines.cCounter + 2] = z
+    lines.colors[4*lines.cCounter + 3] = w
+
+    inc(lines.cCounter)
   of DrawMode.ZGLTriangles:
     triangles.colors[4*triangles.cCounter] = x
     triangles.colors[4*triangles.cCounter + 1] = y
@@ -593,6 +660,10 @@ proc zglColor4ub*(x, y, z, w: int) =
     inc(quads.cCounter)
   else:
     discard
+
+proc zglColor3f*(x, y, z: float) =
+  echo x, y, z
+  zglColor4ub(int x * 255, int y * 255, int z * 255, 255)
 
 proc zglVertex2f*(x, y: float32) =
   zglVertex3f(x, y, currentDepth)
