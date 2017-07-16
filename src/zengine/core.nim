@@ -6,6 +6,9 @@ var
   consoleLogger: ConsoleLogger
   currentTime, previousTime, updateTime: uint32
   renderOffsetX, renderOffsetY = 0
+  previousKeyboardState, currentKeyboardState: ptr array[0 .. SDL_NUM_SCANCODES.int, uint8]
+  previousMouseState, currentMouseState: uint8
+  mousePositionX, mousePositionY: cint
 
 proc setupViewport() =
   let size = sdl2.getSize(window)
@@ -51,6 +54,8 @@ proc init*(width, height: int, mainWindowTitle: string) =
   glClearColor(0.19, 0.19, 0.19, 1.0)
 
   loadDefaultFont()
+  
+  currentKeyboardState = sdl2.getKeyboardState()
 
 # Get current time in seconds since SDL2 timer was initialized
 proc getTime(): uint32 =
@@ -113,3 +118,16 @@ proc shutdown*() =
   glCtx.glDeleteContext()
   window.destroyWindow()
   sdl2.quit()
+
+proc pollInput*() =
+  previousMouseState = currentMouseState
+  currentMouseState = sdl2.getMouseState(mousePositionX, mousePositionY)
+
+  previousKeyboardState = currentKeyboardState
+  currentKeyboardState = sdl2.getKeyboardState()
+
+proc isKeyDown* (key:cint): bool {.inline.}=
+  currentKeyboardState[int(getScancodeFromKey(key))] != 0
+
+proc getMousePosition*(): Vector2 =
+  result = Vector2(x: mousePositionX.float, y: mousePositionY.float)

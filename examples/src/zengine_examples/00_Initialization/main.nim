@@ -31,7 +31,10 @@ while running:
     else:
       discard
 
+  pollInput()
+
   camera.update(mouseWheelMovement)
+  
   beginDrawing()
   clearBackground(ZENGRAY)
 

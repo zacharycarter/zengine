@@ -1,4 +1,4 @@
-import zgl, math, zmath
+import zgl, math, zmath, core, sdl2
 
 type
   CameraMode* = enum
@@ -7,11 +7,14 @@ type
 const CAMERA_FREE_DISTANCE_MAX_CLAMP = 120.0
 const CAMERA_FREE_DISTANCE_MIN_CLAMP = 1.5
 const CAMERA_MOUSE_SCROLL_SENSITIVITY = 1.5
+const CAMERA_FREE_MOUSE_SENSITIVITY = 0.01
+const CAMERA_FREE_PANNING_DIVIDER = 5.1
 
 var cameraTargetDistance = 0.0
 var cameraAngle = vector2Zero()
 var playerEyesPosition = 1.85
 var cameraMode = CameraMode.Custom
+var previousMousePosition: Vector2
 
 proc setMode*(camera: var Camera, mode: CameraMode) =
   let v1 = camera.position
@@ -35,6 +38,14 @@ proc setMode*(camera: var Camera, mode: CameraMode) =
   cameraMode = mode
 
 proc update*(camera: var Camera, mouseWheelMove: int) =
+  var mousePositionDelta = vector2Zero()
+  var mousePosition = getMousePosition()
+
+  mousePositionDelta.x = mousePosition.x - previousMousePosition.x;
+  mousePositionDelta.y = mousePosition.y - previousMousePosition.y;
+
+  previousMousePosition = mousePosition;
+
   case cameraMode
   of CameraMode.Free:
     if cameraTargetDistance < CAMERA_FREE_DISTANCE_MAX_CLAMP and mouseWheelMove < 0:
@@ -70,6 +81,11 @@ proc update*(camera: var Camera, mouseWheelMove: int) =
     elif camera.position.y < camera.target.y and camera.target.y > 0 and mouseWheelMove > 0:
       cameraTargetDistance -= mouseWheelMove.float*CAMERA_MOUSE_SCROLL_SENSITIVITY
       if cameraTargetDistance < CAMERA_FREE_DISTANCE_MIN_CLAMP: cameraTargetDistance = CAMERA_FREE_DISTANCE_MIN_CLAMP
+
+    if isKeyDown(sdl2.K_LALT):
+      camera.target.x += ((mousePositionDelta.x * -CAMERA_FREE_MOUSE_SENSITIVITY)*cos(cameraAngle.x) + (mousePositionDelta.y*CAMERA_FREE_MOUSE_SENSITIVITY)*sin(cameraAngle.x)*sin(cameraAngle.y))*(cameraTargetDistance/CAMERA_FREE_PANNING_DIVIDER);
+      camera.target.y += ((mousePositionDelta.y * CAMERA_FREE_MOUSE_SENSITIVITY)*cos(cameraAngle.y))*(cameraTargetDistance/CAMERA_FREE_PANNING_DIVIDER)
+      camera.target.z += ((mousePositionDelta.x * CAMERA_FREE_MOUSE_SENSITIVITY)*sin(cameraAngle.x) + (mousePositionDelta.y*CAMERA_FREE_MOUSE_SENSITIVITY)*cos(cameraAngle.x)*sin(cameraAngle.y))*(cameraTargetDistance/CAMERA_FREE_PANNING_DIVIDER);
 
   else:
       discard
