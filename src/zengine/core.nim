@@ -1,4 +1,4 @@
-import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, glm
+import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, glm, zmath
 
 var 
   window: sdl2.WindowPtr
@@ -16,7 +16,6 @@ proc init*(width, height: int, mainWindowTitle: string) =
   addHandler(consoleLogger)
   sdl2.init(INIT_TIMER or INIT_VIDEO)
   discard sdl_image.init()
-  sdl_ttf.ttfInit()
 
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2)
@@ -73,7 +72,8 @@ proc begin3dMode*() =
   zglMatrixMode(MatrixMode.ZGLModelView)
   zglLoadIdentity()
 
-  zglMultMatrix()
+  var cameraView = matrixLookAt(Vector3(x:0, y:10, z:10), Vector3(x: 0, y: 0, z: 0), Vector3(x: 0, y: 1, z: 0))
+  zglMultMatrix(matrixToFloat(cameraView))
 
   #zglEnableDepthTest()
 

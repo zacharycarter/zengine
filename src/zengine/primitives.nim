@@ -1,6 +1,6 @@
-import glm, math, zgl, texture
+import math, zgl, zmath, texture
 
-proc drawTriangle*(v1, v2, v3: Vec3f, color: ZColor) =
+proc drawTriangle*(v1, v2, v3: Vector3, color: ZColor) =
   zglEnableTexture(getDefaultTexture().id)
 
   zglBegin(DrawMode.ZGLQuads)
@@ -13,7 +13,7 @@ proc drawTriangle*(v1, v2, v3: Vec3f, color: ZColor) =
 
   zglDisableTexture()
 
-proc drawCircleV*(center: Vec2f, radius: float, color: ZColor) =
+proc drawCircleV*(center: Vector2, radius: float, color: ZColor) =
   zglEnableTexture(getDefaultTexture().id)
 
   zglBegin(DrawMode.ZGLQuads)

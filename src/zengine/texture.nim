@@ -1,4 +1,4 @@
-import logging, geom, glm, os, sdl2.image as sdl_image, sdl2, strutils, zgl
+import logging, geom, os, sdl2.image as sdl_image, sdl2, strutils, zgl, zmath
 
 proc loadTexture*(filename: string): Texture2D =
   if fileExists(filename):
@@ -54,7 +54,7 @@ proc loadTexture*(imagePixels: openArray[ZColor], width, height: int): Texture2D
 
   result.id = zglLoadTexture(result.data.pixels, result.data.w, result.data.h, result.data.format.format, result.mipmaps)
 
-proc drawTexture*(tex: Texture2D, sourceRect: Rectangle, destRect: Rectangle, origin: Vec2f, rotation: float, tint: ZColor) =
+proc drawTexture*(tex: Texture2D, sourceRect: Rectangle, destRect: Rectangle, origin: Vector2, rotation: float, tint: ZColor) =
   if tex.id != 0:
     var adjustedSrc = sourceRect
     if(sourceRect.width < 0): adjustedSrc.x -= sourceRect.width

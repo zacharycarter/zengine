@@ -1,4 +1,4 @@
-import logging, math, opengl, sdl2, strutils, util, glm
+import logging, math, opengl, sdl2, strutils, util, zmath
 
 const 
   MATRIX_STACK_SIZE = 16
@@ -37,7 +37,7 @@ type
     vaoId: GLuint
     textureId: GLuint
     shaderId: GLuint
-    projection, modelView: Mat4f
+    projection, modelView: Matrix
 
   DynamicBuffer = object
     vCounter: int # vertex position counter to process (and draw) from full buffer
@@ -56,7 +56,7 @@ type
     mipMaps*: int
 
 var
-  stack: array[MATRIX_STACK_SIZE, Mat4f]
+  stack: array[MATRIX_STACK_SIZE, Matrix]
   stackCounter = 0
   currentDrawMode: DrawMode
   draws: seq[DrawCall]
@@ -66,12 +66,12 @@ var
   currentDepth = -1.0
   defaultShader, currentShader: Shader
   whiteTexture: GLuint
-  modelView, projection: Mat4f
-  currentMatrix: ptr Mat4f
+  modelView, projection: Matrix
+  currentMatrix: ptr Matrix
   currentMatrixMode: MatrixMode
   useTempBuffer = false
   tempBufferCount = 0
-  tempBuffer: seq[Vec3f]
+  tempBuffer: seq[Vector3]
 
 proc getDefaultTexture*(): Texture2D =
   var rMask, gMask, bMask, aMask: uint32
@@ -353,10 +353,10 @@ proc zglInit*(width, height: int) =
 
   loadDefaultBuffers()
 
-  tempBuffer = newSeq[Vec3f](TEMP_VERTEX_BUFFER_SIZE)
+  tempBuffer = newSeq[Vector3](TEMP_VERTEX_BUFFER_SIZE)
 
   for i in 0..<TEMP_VERTEX_BUFFER_SIZE:
-    tempBuffer[i] = vec3f(0)
+    tempBuffer[i] = vectorZero()
 
   draws = newSeq[DrawCall](MAX_DRAWS_BY_TEXTURE)
 
@@ -365,10 +365,10 @@ proc zglInit*(width, height: int) =
   currentDrawMode = DrawMode.ZGLTriangles
 
   for i in 0..<MATRIX_STACK_SIZE:
-    stack[i] = mat4f(1.0)
+    stack[i] = matrixIdentity()
 
-  projection = mat4f(1.0)
-  modelView = mat4f(1.0)
+  projection = matrixIdentity()
+  modelView = matrixIdentity()
   currentMatrix = addr modelView
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); # Color blending function (how colors are mixed)
@@ -418,7 +418,7 @@ proc zglVertex3f*(x, y, z: GLdouble) =
 proc zglEnd*() =
   if useTempBuffer:
     for i in 0..<tempBufferCount:
-      tempBuffer[i] = (vec4f(tempBuffer[i], 1.0) * currentMatrix[]).xyz
+      vectorTransform(tempBuffer[i], currentMatrix[])
     
     useTempBuffer = false
 
@@ -463,6 +463,28 @@ proc zglEnd*() =
   
   currentDepth += (1.0f/20000.0f)
 
+proc matrixToFloat*(mat: Matrix): array[16, GLfloat] =
+  var buffer {.global.}: array[16, GLfloat]
+
+  buffer[0] = mat.m0
+  buffer[1] = mat.m4
+  buffer[2] = mat.m8
+  buffer[3] = mat.m12
+  buffer[4] = mat.m1
+  buffer[5] = mat.m5
+  buffer[6] = mat.m9
+  buffer[7] = mat.m13
+  buffer[8] = mat.m2
+  buffer[9] = mat.m6
+  buffer[10] = mat.m10
+  buffer[11] = mat.m14
+  buffer[12] = mat.m3
+  buffer[13] = mat.m7
+  buffer[14] = mat.m11
+  buffer[15] = mat.m15
+
+  return buffer
+
 proc drawDefaultBuffers() =
   var matProjection = projection
   var matModelView = modelView
@@ -470,9 +492,10 @@ proc drawDefaultBuffers() =
   if quads.vCounter > 0 or triangles.vCounter > 0:
     glUseProgram(currentShader.id)
 
-    var matMVP = modelView * projection
+    var matMVP = matrixMultiply(modelView, projection)
 
-    glUniformMatrix4fv(currentShader.mvpLoc, 1, false, matMVP.caddr)
+    var matMVPFloatArray = matrixToFloat(matMVP)
+    glUniformMatrix4fv(currentShader.mvpLoc, 1, false, addr matMVPFloatArray[0])
     glUniform1i(currentShader.mapTexture0Loc, 0)
 
   if triangles.vCounter > 0:
@@ -578,7 +601,7 @@ proc zglViewport*(x, y, width, height: int) =
   glViewport(x, y, width, height)
 
 proc zglLoadIdentity*() =
-  currentMatrix[] = mat4f()
+  currentMatrix[] = matrixIdentity()
 
 proc zglMatrixMode*(mode: MatrixMode) =
   if mode == MatrixMode.ZGLProjection:
@@ -601,8 +624,10 @@ proc zglPushMatrix*() =
 
 
 proc zglOrtho*(left, right, bottom, top, near, far: float) =
-  var matOrtho = ortho[GLfloat](left, right, bottom, top, near, far)
-  currentMatrix[] = currentMatrix[] * matOrtho
+  #var matOrtho = ortho[GLfloat](left, right, bottom, top, near, far)
+  var matOrtho = matrixOrtho(left, right, bottom, top, near, far)
+  matrixTranspose(matOrtho)
+  currentMatrix[] = matrixMultiply(currentMatrix[], matOrtho)
 
 proc unloadDefaultShader() = 
   glUseProgram(0)
@@ -644,14 +669,24 @@ proc zglDisableTexture*() =
     zglDraw()
 
 proc zglTranslatef*(x, y, z: float) =
-  var tmp = translate(currentMatrix[], vec3f(x, y, z))
-  currentMatrix[] = currentMatrix[] * transpose(tmp)
+  var tmp = matrixTranslate(x, y, z)
+  #matrixTranspose(tmp)
+  currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
 
 proc zglRotatef*(angleDeg: float, x, y, z: float) =
-  currentMatrix[] = rotate(currentMatrix[], vec3f(x, y, z), degToRad(angleDeg))
+  var matRotation = matrixIdentity()
+
+  var axis = Vector3(x: x, y: y, z: z)
+  vectorNormalize(axis)
+  matRotation = matrixRotate(axis, degToRad(angleDeg))
+  #matrixTranspose(matRotation)
+
+  currentMatrix[] = matrixMultiply(currentMatrix[], matRotation)
+  #currentMatrix[] = rotate(currentMatrix[], vec3f(x, y, z), degToRad(angleDeg))
 
 proc zglScalef*(x, y, z: float) =
-  currentMatrix[] = scale(currentMatrix[], vec3f(x, y, z))
+  discard
+  #currentMatrix[] = scale(currentMatrix[], vec3f(x, y, z))
 
 proc zglNormal3f*(x, y, z: float) =
   # TODO 
@@ -677,8 +712,19 @@ proc zglDeleteTexture*(id: var GLuint) =
     glDeleteTextures(1, addr id)
 
 proc zglFrustum*(left, right, bottom, top, near, far: float) =
-  currentMatrix[] = currentMatrix[] * transpose(glm.frustum[float32](left, right, bottom, top, near, far))
+  var frustum = matrixFrustum(left, right, bottom, top, near, far)
+  matrixTranspose(frustum)
+  currentMatrix[] = matrixMultiply(currentMatrix[], frustum)
+  #currentMatrix[] = currentMatrix[] * transpose(glm.frustum[float32](left, right, bottom, top, near, far))
   #currentMatrix[] = currentMatrix[] * transpose(glm.perspective[float32](45.0, 960.0 / 540.0, 0.1, 1000.0))
 
-proc zglMultMatrix*() =
-  currentMatrix[] = currentMatrix[] * transpose(glm.lookAt[float32](vec3f(0, 10, 10), vec3f(0, 0, 0), vec3f(0, 1, 0)))
+proc zglMultMatrix*(m: array[16, GLfloat]) =
+  var tmp = Matrix(
+    m0:m[0], m1:m[1], m2:m[2], m3:m[3],
+    m4:m[4], m5:m[5], m6:m[6], m7:m[7],
+    m8:m[8], m9:m[9], m10:m[10], m11:m[11],
+    m12:m[12], m13:m[13], m14:m[14], m15:m[15]
+  )
+  matrixTranspose(tmp)
+  currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
+  #currentMatrix[] = currentMatrix[] * transpose(glm.lookAt[float32](vec3f(0, 10, 10), vec3f(0, 0, 0), vec3f(0, 1, 0)))

@@ -1,4 +1,4 @@
-import logging, zgl, color, glm, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils
+import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, zmath
 
 type
   CharInfo = object
@@ -278,7 +278,7 @@ proc getCharIndex(font: Font, letter: int): int =
 
   return index
 
-proc drawTextEx(font: Font, text: string, position: Vec2f, fontSize: float, spacing: int, tint: ZColor) =
+proc drawTextEx(font: Font, text: string, position: Vector2, fontSize: float, spacing: int, tint: ZColor) =
   let length = text.len
   var textOffsetX = 0
   var textOffsetY = 0
@@ -312,7 +312,7 @@ proc drawTextEx(font: Font, text: string, position: Vec2f, fontSize: float, spac
           width: int font.chars[index].rec.width.float*scaleFactor,
           height: int font.chars[index].rec.height.float*scaleFactor,
         ),
-        vec2f(0),
+        vector2Zero(),
         0.0,
         tint
       )
@@ -320,17 +320,17 @@ proc drawTextEx(font: Font, text: string, position: Vec2f, fontSize: float, spac
       if font.chars[index].advanceX == 0:
         textOffsetX += (font.chars[index].rec.width.float*scaleFactor + spacing.float).int
       else:
-        textOffsetX += (int)(font.chars[index].advanceX.float*scaleFactor + spacing.float).int
+        textOffsetX += (font.chars[index].advanceX.float*scaleFactor + spacing.float).int
 
     inc(i)
 
 
 proc drawText*(text: string, posX, posY: float, fontSize: float, color: ZColor) =
   if defaultFont.texture.id != 0:
-    let position = vec2f(posx.float, posY.float)
+    let position = Vector2(x: posx, y: posY)
 
     let defaultFontSize = 10.0
-    var fontSize = if fontSize < defaultFontSize: fontSize else: defaultFontSize
+    var size = if fontSize < defaultFontSize: defaultFontSize else: fontSize
     let spacing = fontSize / defaultFontSize
 
-    drawTextEx(defaultFont, text, position, fontSize, spacing.int, color)
+    drawTextEx(defaultFont, text, position, size, spacing.int, color)

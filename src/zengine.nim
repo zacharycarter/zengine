@@ -1,4 +1,4 @@
-import zengine/[core, color, models, primitives, text, zgl]
+import zengine/[core, color, models, primitives, text, zgl, zmath]
 
 export 
   zengine.core,
@@ -6,4 +6,5 @@ export
   zengine.models,
   zengine.primitives,
   zengine.text,
-  zengine.zgl
+  zengine.zgl,
+  zengine.zmath

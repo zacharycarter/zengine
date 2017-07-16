@@ -1,11 +1,12 @@
-import glm, zgl
+import zgl, zmath, sdl2
 
-proc drawCube*(position: Vec3f, width, height, length: float, color: ZColor) =
+proc drawCube*(position: Vector3, width, height, length: float, color: ZColor) =
   let x, y, z = 0.0
 
   zglPushMatrix()
   
   zglTranslatef(position.x, position.y, position.z)
+  zglRotatef(sdl2.getTicks().float / 10.0, 0, 1, 0)
 
   zglBegin(DrawMode.ZGLTriangles)
   zglColor4ub(color.r, color.g, color.b, color.a)
