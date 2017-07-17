@@ -343,3 +343,9 @@ proc matrixRotate*(axis: Vector3, angle: float32): Matrix =
     result.m13 = mat.m13;
     result.m14 = mat.m14;
     result.m15 = mat.m15;
+
+proc matrixScale*(x, y, z: float32): Matrix =
+  result = Matrix(m0:x, m1:0.0, m2:0.0, m3:0.0, 
+                  m4:0.0, m5:y, m6:0.0f, m7:0.0, 
+                  m8:0.0, m9:0.0f, m10:z, m11:0.0, 
+                  m12:0.0, m13:0.0, m14:0.0, m15:1.0)

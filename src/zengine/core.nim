@@ -1,5 +1,6 @@
 import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, glm, zmath
 
+
 var 
   window: sdl2.WindowPtr
   glCtx: sdl2.GlContextPtr
@@ -25,7 +26,7 @@ proc init*(width, height: int, mainWindowTitle: string) =
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_FLAGS        , SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE)
 
-  window = createWindow(mainWindowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width.cint, height.cint, SDL_WINDOW_SHOWN or SDL_WINDOW_OPENGL)
+  window = createWindow(mainWindowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width.cint, height.cint, SDL_WINDOW_SHOWN or SDL_WINDOW_OPENGL or SDL_WINDOW_INPUT_GRABBED)
 
   if window.isNil:
     quit(QUIT_FAILURE)
@@ -35,7 +36,8 @@ proc init*(width, height: int, mainWindowTitle: string) =
   if glCtx.isNil:
     quit(QUIT_FAILURE)
 
-  loadExtensions()
+  when not defined(emscripten):
+    loadExtensions()
   
   doAssert 0 == glMakeCurrent(window, glCtx)  
 
@@ -131,3 +133,6 @@ proc isKeyDown* (key:cint): bool {.inline.}=
 
 proc getMousePosition*(): Vector2 =
   result = Vector2(x: mousePositionX.float, y: mousePositionY.float)
+
+proc disableCursor*() =
+  discard sdl2.setRelativeMouseMode(sdl2.True32)

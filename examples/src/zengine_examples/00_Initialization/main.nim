@@ -10,21 +10,32 @@ var
   evt = sdl2.defaultEvent
   running = true
   camera = Camera(
-    position: Vector3(x: 10, y: 10, z: 10),
-    target: Vector3(x: 0, y: 0, z: 0),
+    position: Vector3(x: 4, y: 2, z: 4),
+    target: Vector3(x: 0, y: 1.8, z: 0),
     up: Vector3(x: 0, y: 1, z: 0),
-    fovY: 45
+    fovY: 60
   )
   mouseWheelMovement = 0
+  mouseXRel = 0
+  mouseYRel = 0
 
-camera.setMode(CameraMode.Free)
+#camera.setMode(CameraMode.Free)
+camera.setMode(CameraMode.FirstPerson)
+
+discard loadObj("examples/data/dwarf.obj")
 
 while running:
   mouseWheelMovement = 0
+  mouseXRel = 0
+  mouseYRel = 0
   while sdl2.pollEvent(evt):
     case evt.kind
     of QuitEvent:
       running = false
+    of MouseMotion:
+      var mouseMoveEvent = cast[MouseMotionEventPtr](addr evt)
+      mouseXRel = mouseMoveEvent.xrel
+      mouseYRel = mouseMoveEvent.yrel
     of MouseWheel:
       var mouseWheelEvent = cast[MouseWheelEventPtr](addr evt)
       mouseWheelMovement = mouseWheelEvent.y
@@ -33,19 +44,19 @@ while running:
 
   pollInput()
 
-  camera.update(mouseWheelMovement)
+  camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
   
   beginDrawing()
   clearBackground(ZENGRAY)
-
-  
-  drawText("Hello zengine!", 5, 5, 30, ZColor(r: 255, g: 255, b: 255, a: 255))
   
   begin3dMode(camera)
-  drawCube(Vector3(x:0.0, y: 0.0, z: 0.0), 2.0f, 2.0f, 2.0f, RED)
-  drawCubeWires(Vector3(x:0.0, y:0.0, z:0.0), 2.0, 2.0, 2.0, BLACK)
-  drawGrid(10, 1.0)
+  drawPlane(Vector3(x: 0.0, y: 0.0, z: 0.0), Vector2(x: 32.0, y: 32.0), GREEN)
+  drawCube(Vector3(x: -16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, BLUE)
+  drawCube(Vector3(x: 16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, RED)
+  drawCube(Vector3(x: 0.0, y: 2.5, z: 16.0), 32.0, 5.0, 1.0, WHITE)
   end3dMode()
+
+  drawText("Hello zengine!", 5, 5, 30, ZColor(r: 255, g: 255, b: 255, a: 255))
 
   endDrawing()
 

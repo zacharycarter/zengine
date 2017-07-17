@@ -60,6 +60,19 @@ type
     position*, target*, up*: Vector3
     fovY*: float
 
+  Mesh* = ref object
+    vertexCount: int
+    triangleCount: int
+    vertices: seq[float]
+    texCoords: seq[float]
+    texCoords2: seq[float]
+    normals: seq[float]
+    tangents: seq[float]
+    colors: seq[cuchar]
+    indices: seq[cushort]
+    vaoId: GLuint
+    vboId: array[7, GLuint]
+
 var
   stack: array[MATRIX_STACK_SIZE, Matrix]
   stackCounter = 0
@@ -769,7 +782,8 @@ proc zglRotatef*(angleDeg: float, x, y, z: float) =
 
 proc zglScalef*(x, y, z: float) =
   discard
-  #currentMatrix[] = scale(currentMatrix[], vec3f(x, y, z))
+  var tmp = matrixScale(x, y, z)
+  currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
 
 proc zglNormal3f*(x, y, z: float) =
   # TODO 
