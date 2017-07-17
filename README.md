@@ -2,7 +2,7 @@
 2D | 3D Game development library
 
 Current status - 
-![FPS Camera](http://imgur.com/a/RrpqV)
+![FPS Camera](https://media.giphy.com/media/xUA7aSrJzGLbB0x5hS/giphy.gif)
 ![2D & 3D Primitive Rendering](http://i.imgur.com/m5gWahM.png)
 
 
