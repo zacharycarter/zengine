@@ -60,18 +60,23 @@ type
     position*, target*, up*: Vector3
     fovY*: float
 
-  Mesh* = ref object
-    vertexCount: int
-    triangleCount: int
-    vertices: seq[float]
-    texCoords: seq[float]
+  Material* = object
+    shader*: Shader
+    texDiffuse*: Texture2D
+
+  Mesh* = object
+    vertexCount*: int
+    triangleCount*: int
+    vertices*: seq[GLfloat]
+    texCoords*: seq[GLfloat]
     texCoords2: seq[float]
     normals: seq[float]
     tangents: seq[float]
     colors: seq[cuchar]
-    indices: seq[cushort]
+    indices*: seq[GLushort]
     vaoId: GLuint
     vboId: array[7, GLuint]
+    materialIndex*: int
 
 var
   stack: array[MATRIX_STACK_SIZE, Matrix]
@@ -109,6 +114,9 @@ proc getDefaultTexture*(): Texture2D =
   result.id = whiteTexture
   result.data = sdl2.createRGBSurface(0, 1, 1, 32, rmask, gmask, bmask, amask)
   result.mipMaps = 1
+
+proc getDefaultShader*(): Shader =
+  return defaultShader
 
 proc loadShaderProgram*(vertexShaderStr, fragmentShaderStr: string): GLuint =
   var
@@ -179,7 +187,8 @@ proc loadShaderProgram*(vertexShaderStr, fragmentShaderStr: string): GLuint =
 
   # NOTE: Default attribute shader locations must be binded before linking
   glBindAttribLocation(program, 0, DEFAULT_ATTRIB_POSITION_NAME)
-  glBindAttribLocation(program, 1, DEFAULT_ATTRIB_COLOR_NAME)
+  glBindAttribLocation(program, 1, DEFAULT_ATTRIB_TEXCOORD_NAME)
+  glBindAttribLocation(program, 2, DEFAULT_ATTRIB_COLOR_NAME)
 
   glLinkProgram(program)
 
@@ -249,7 +258,7 @@ proc loadDefaultShader(): Shader =
 
     void main() {
         vec4 texelColor = texture(texture0, exFragTexCoord);
-        outColor = texelColor * exColor;
+        outColor = texelColor * vec4(1.0, 1.0, 1.0, 1.0) * exColor;
     }
   """
 
@@ -355,11 +364,17 @@ proc zglLoadTexture*(data: pointer, width, height: int, pixelFormat: uint32, mip
 
   glBindTexture(GL_TEXTURE_2D, id)
 
-  case pixelFormat
-  of SDL_PIXELFORMAT_RGBA8888:
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+  case sdl2.SDL_BYTESPERPIXEL(pixelFormat)
+  of 4:
+    case pixelFormat
+    of sdl2.SDL_PIXELFORMAT_RGBA8888:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+    of sdl2.SDL_PIXELFORMAT_ABGR8888:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+    else:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
   else:
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
@@ -828,3 +843,86 @@ proc zglEnableDepthTest*() =
 
 proc zglDisableDepthTest*() =
   glDisable(GL_DEPTH_TEST)
+
+proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
+  mesh.vaoId = 0
+  mesh.vboId[0] = 0
+  mesh.vboId[1] = 0
+  mesh.vboId[2] = 0
+  mesh.vboId[3] = 0
+  mesh.vboId[4] = 0
+  mesh.vboId[5] = 0
+  mesh.vboId[6] = 0
+
+  var vaoId: GLuint = 0
+  var vboId: array[7, GLuint]
+
+  glGenVertexArrays(1, addr vaoId)
+  glBindVertexArray(vaoId)
+
+  glGenBuffers(1, addr vboId[0])
+  glBindBuffer(GL_ARRAY_BUFFER, vboId[0])
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.vertices[0], GL_STATIC_DRAW)
+  glVertexAttribPointer(0, 3, cGL_FLOAT, GL_FALSE, 0, nil)
+  glEnableVertexAttribArray(0)
+
+  glGenBuffers(1, addr vboId[1])
+  glBindBuffer(GL_ARRAY_BUFFER, vboId[1])
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*2*mesh.vertexCount, addr mesh.texcoords[0], GL_STATIC_DRAW);
+  glVertexAttribPointer(1, 2, cGL_FLOAT, GL_FALSE, 0, nil)
+  glEnableVertexAttribArray(1)
+
+  glVertexAttrib4f(2, 1.0, 1.0, 1.0, 1.0)
+  glDisableVertexAttribArray(2)
+
+  if mesh.indices != nil:
+    glGenBuffers(1, addr vboId[6])
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[6])
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*mesh.triangleCount*3, addr mesh.indices[0], GL_STATIC_DRAW)
+
+  mesh.vboId[0] = vboId[0]
+  mesh.vboId[1] = vboId[1]
+  mesh.vboId[2] = vboId[2]
+  mesh.vboId[3] = vboId[1]
+  mesh.vboId[4] = vboId[2]
+  mesh.vboId[5] = vboId[1]
+  mesh.vboId[6] = vboId[6]
+  
+  
+  mesh.vaoId = vaoId
+
+proc zglDrawMesh*(mesh: Mesh, material: Material) =
+  glUseProgram(material.shader.id)
+
+  let matView = modelView
+  let matProjection = projection
+
+  let matModelView = matrixMultiply(matrixIdentity(), matView)
+
+  glActiveTexture(GL_TEXTURE0)
+  glBindTexture(GL_TEXTURE_2D, material.texDiffuse.id)
+  glUniform1i(material.shader.mapTexture0Loc, 0)
+
+  glBindVertexArray(mesh.vaoId)
+
+  modelView = matModelView
+  let matMVP = matrixMultiply(modelview, projection)
+  var matMVPFloatArray = matrixToFloat(matMVP)
+  glUniformMatrix4fv(material.shader.mvpLoc, 1, false, addr matMVPFloatArray[0])
+
+  if mesh.indices != nil:
+    assert mesh.triangleCount * 3 == mesh.indices.len
+    glDrawElements(GL_TRIANGLES, mesh.triangleCount*3, GL_UNSIGNED_SHORT, nil)
+  else:
+    glDrawArrays(GL_TRIANGLES, 0, mesh.vertexCount)
+
+
+  glActiveTexture(GL_TEXTURE0)
+  glBindTexture(GL_TEXTURE_2D, 0)
+
+  glBindVertexArray(0)
+
+  glUseProgram(0)
+
+  projection = matProjection
+  modelview = matView

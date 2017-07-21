@@ -1,7 +1,7 @@
 import logging, geom, os, sdl2.image as sdl_image, sdl2, strutils, zgl, zmath
 
 proc loadTexture*(filename: string): Texture2D =
-  if fileExists(filename):
+  if not fileExists(filename):
     warn("Attempting to load non-existent texture file: $1" % filename)
     return
   
@@ -32,17 +32,10 @@ proc loadTexture*(imagePixels: openArray[ZColor], width, height: int): Texture2D
     inc(i, 4)
 
   var rMask, gMask, bMask, aMask: uint32
-
-  when cpuEndian == Endianness.bigEndian:
-    rMask = 0xff000000u32
-    gMask = 0x00ff0000u32
-    bMask = 0x0000ff00u32
-    aMask = 0x000000ffu32
-  else:
-    rMask = 0x000000ffu32
-    gMask = 0x0000ff00u32
-    bMask = 0x00ff0000u32
-    aMask = 0xff000000u32
+  rMask = 0xff000000u32
+  gMask = 0x00ff0000u32
+  bMask = 0x0000ff00u32
+  aMask = 0x000000ffu32
 
   result.data = sdl2.createRGBSurfaceFrom(cast[pointer](addr pixelData[0]), width.cint, height.cint, 32, 4 * width.cint, rMask, gMask, bMask, aMask)
 

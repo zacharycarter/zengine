@@ -1,4 +1,14 @@
-import logging, zgl, zmath, sdl2, os, strutils
+import logging, zgl, zmath, sdl2, os, strutils, assimp, opengl, texture
+
+type
+  Model = object
+    meshes: seq[Mesh]
+    materials: seq[Material]
+
+const ASSIMP_LOAD_FLAGS = aiProcess_Triangulate or aiProcess_GenSmoothNormals or aiProcess_FlipUVs or aiProcess_JoinIdenticalVertices
+
+proc offset*[A](some: ptr A; b: int): ptr A =
+  result = cast[ptr A](cast[int](some) + (b * sizeof(A)))
 
 proc drawCube*(position: Vector3, width, height, length: float, color: ZColor) =
   let x, y, z = 0.0
@@ -181,75 +191,68 @@ proc drawPlane*(centerPos: Vector3, size: Vector2, color: ZColor) =
   zglEnd()
   zglPopMatrix()
 
-
-
-proc loadOBJ*(filename: string): Mesh =
-  var 
-    vertexCount = 0
-    normalCount = 0
-    texCoordCount = 0
-    triangleCount = 0
-
-  if not fileExists(filename):
-    warn("[%s] OBJ file does not exist" % fileName)
-    return result
-
-  var objFile = open(filename)
-
-  if objFile.isNil:
-    warn("[%s] OBJ file could not be opened" % fileName)
-    return result
-
-  for line in objFile.lines:
-    case line[0]
-    of '#', # Comments
-      'o', # Object name
-      'g', # Group name
-      's', # Smooting level
-      'm', #mtllib
-      'u': #usemtl
-        discard 
-    of 'v':
-      case line[1]
-      of 't':
-        inc(texCoordCount)
-      of 'n':
-        inc(normalCount)
-      else:
-        inc(vertexCount)
-    of 'f':
-      inc(triangleCount)
-    else:
-        discard
-
-  var midVertices = newSeq[Vector3](vertexCount)
-  var midNormals: seq[Vector3] = nil
-  if normalCount > 0:
-    midNormals = newSeq[Vector3](normalCount)
-  var midTexCoords: seq[Vector2] = nil
-  if texCoordCount > 0:
-    midTexCoords = newSeq[Vector2](texCoordCount)
+proc init(material: var Material, some: PMaterial, filename: string) =
+  var path : AIString
+  if getTexture(some, TexDiffuse, 0, addr path) == ReturnSuccess:
+    let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+    
+    material.texDiffuse = loadTexture(filename)
   
-  var 
-    countVertex = 0
-    countNormals = 0
-    countTexCoords = 0
+  material.shader = getDefaultShader()
 
-  for line in objFile.lines:
-    case line[0]
-    of '#', 'o', 'g', 's', 'm', 'u', 'f':
-        discard 
-    of 'v':
-      case line[1]
-      of 't':
-        echo "HERE"
-        let a = split(line, ' ')
-        for i in 1..<a.high:
-          echo parseFloat(a[i])
-        inc(texCoordCount)
-      of 'n':
-        inc(normalCount)
-      else:
-        inc(vertexCount)
-    else:
-        discard
+proc init(mesh: var Mesh, some: PMesh) =
+  mesh.vertices = newSeq[GLfloat](some.vertexCount*3)
+  mesh.texCoords = newSeq[GLfloat](some.vertexCount*2)
+  mesh.indices = newSeq[GLushort](some.faceCount * 3)
+
+  var vCounter = 0
+  for v in 0..<some.vertexCount:
+    mesh.vertices[vCounter] = some.vertices.offset(v)[].x
+    mesh.vertices[vCounter + 1] = some.vertices.offset(v)[].y
+    mesh.vertices[vCounter + 2] = some.vertices.offset(v)[].z
+    inc(mesh.vertexCount)
+    inc(vCounter, 3)
+
+  var tcCounter = 0
+  for tc in 0..<some.vertexCount:
+    mesh.texCoords[tcCounter] = some.texCoords[0].offset(tc)[].x
+    mesh.texCoords[tcCounter + 1] = some.texCoords[0].offset(tc)[].y
+    inc(tcCounter, 2)
+
+  var fCounter = 0
+  for f in 0..<some.faceCount:
+    mesh.indices[fCounter] = GLushort some.faces[f].indices[0]
+    mesh.indices[fCounter + 1] = GLushort some.faces[f].indices[1]
+    mesh.indices[fCounter + 2] = GLushort some.faces[f].indices[2]
+    inc(mesh.triangleCount)
+    inc(fCounter, 3)
+
+  zglLoadMesh(mesh, false)
+
+  mesh.materialIndex = some.materialIndex
+
+proc init(model: var Model, scene: PScene, filename: string) =
+  model.meshes = newSeq[Mesh](scene.meshCount)
+  model.materials = newSeq[Material](scene.materialCount)
+
+  var m = 0
+  for mesh in model.meshes.mitems:
+    mesh.init(scene.meshes[m])
+    inc(m)
+
+  m = 0
+  for material in model.materials.mitems:
+    material.init(scene.materials[m], filename)
+    inc(m)
+
+proc loadModel*(filename: string): Model =
+  let scene = aiImportFile(filename, ASSIMP_LOAD_FLAGS)
+  if scene.isNil:
+    warn("[$1] Mesh could not be loaded." % filename)
+    return
+  
+  result.init(scene, filename)
+
+proc drawModel*(model: var Model, tint: ZColor) =
+  for mesh in model.meshes:
+    zglDrawMesh(mesh, model.materials[mesh.materialIndex])

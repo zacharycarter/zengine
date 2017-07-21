@@ -22,7 +22,7 @@ var
 #camera.setMode(CameraMode.Free)
 camera.setMode(CameraMode.FirstPerson)
 
-discard loadObj("examples/data/dwarf.obj")
+var model = loadModel("examples/data/cyborg/cyborg.obj")
 
 while running:
   mouseWheelMovement = 0
@@ -54,6 +54,7 @@ while running:
   drawCube(Vector3(x: -16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(Vector3(x: 16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(Vector3(x: 0.0, y: 2.5, z: 16.0), 32.0, 5.0, 1.0, WHITE)
+  drawModel(model, WHITE)
   end3dMode()
 
   drawText("Hello zengine!", 5, 5, 30, ZColor(r: 255, g: 255, b: 255, a: 255))
