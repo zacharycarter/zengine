@@ -9,13 +9,16 @@ const
   TEMP_VERTEX_BUFFER_SIZE = 4096
   DEFAULT_ATTRIB_POSITION_NAME = "inPosition"
   DEFAULT_ATTRIB_TEXCOORD_NAME = "inTexCoord0"
+  DEFAULT_ATTRIB_NORMAL_NAME = "inNormal"
   DEFAULT_ATTRIB_COLOR_NAME = "inColor"
 
 type
   Shader = object
     id: GLuint
-    texCoordLoc: GLint
     vertexLoc: GLint
+    texCoordLoc: GLint
+    normalLoc: GLint
+    colDiffuseLoc: GLint
     colorLoc: GLint
     mapTexture0Loc: GLint
     mvpLoc: GLint
@@ -63,6 +66,7 @@ type
   Material* = object
     shader*: Shader
     texDiffuse*: Texture2D
+    colDiffuse*: ZColor
 
   Mesh* = object
     vertexCount*: int
@@ -70,7 +74,7 @@ type
     vertices*: seq[GLfloat]
     texCoords*: seq[GLfloat]
     texCoords2: seq[float]
-    normals: seq[float]
+    normals*: seq[GLfloat]
     tangents: seq[float]
     colors: seq[cuchar]
     indices*: seq[GLushort]
@@ -188,7 +192,8 @@ proc loadShaderProgram*(vertexShaderStr, fragmentShaderStr: string): GLuint =
   # NOTE: Default attribute shader locations must be binded before linking
   glBindAttribLocation(program, 0, DEFAULT_ATTRIB_POSITION_NAME)
   glBindAttribLocation(program, 1, DEFAULT_ATTRIB_TEXCOORD_NAME)
-  glBindAttribLocation(program, 2, DEFAULT_ATTRIB_COLOR_NAME)
+  glBindAttribLocation(program, 2, DEFAULT_ATTRIB_NORMAL_NAME)
+  glBindAttribLocation(program, 3, DEFAULT_ATTRIB_COLOR_NAME)
 
   glLinkProgram(program)
 
@@ -225,9 +230,12 @@ proc loadShaderProgram*(vertexShaderStr, fragmentShaderStr: string): GLuint =
 proc loadDefaultShaderLocations(shader: var Shader) =
   shader.vertexLoc = glGetAttribLocation(shader.id, DEFAULT_ATTRIB_POSITION_NAME)
   shader.texCoordLoc = glGetAttribLocation(shader.id, DEFAULT_ATTRIB_TEXCOORD_NAME)
+  shader.normalLoc = glGetAttribLocation(shader.id, DEFAULT_ATTRIB_NORMAL_NAME)
   shader.colorLoc = glGetAttribLocation(shader.id, DEFAULT_ATTRIB_COLOR_NAME)
 
   shader.mvpLoc = glGetUniformLocation(shader.id, "mvpMatrix")
+
+  shader.colDiffuseLoc = glGetUniformLocation(shader.id, "colDiffuse")
 
   shader.mapTexture0Loc = glGetUniformLocation(shader.id, "texture0")
 
@@ -255,10 +263,11 @@ proc loadDefaultShader(): Shader =
     out vec4 outColor;
 
     uniform sampler2D texture0;
+    uniform vec4 colDiffuse;
 
     void main() {
         vec4 texelColor = texture(texture0, exFragTexCoord);
-        outColor = texelColor * vec4(1.0, 1.0, 1.0, 1.0) * exColor;
+        outColor = texelColor * colDiffuse * exColor;
     }
   """
 
@@ -580,6 +589,7 @@ proc drawDefaultBuffers() =
 
     var matMVPFloatArray = matrixToFloat(matMVP)
     glUniformMatrix4fv(currentShader.mvpLoc, 1, false, addr matMVPFloatArray[0])
+    glUniform4f(currentShader.colDiffuseLoc, 1.0f, 1.0f, 1.0f, 1.0f)
     glUniform1i(currentShader.mapTexture0Loc, 0)
 
   if lines.vCounter > 0:
@@ -872,8 +882,18 @@ proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
   glVertexAttribPointer(1, 2, cGL_FLOAT, GL_FALSE, 0, nil)
   glEnableVertexAttribArray(1)
 
-  glVertexAttrib4f(2, 1.0, 1.0, 1.0, 1.0)
-  glDisableVertexAttribArray(2)
+  if mesh.normals != nil:
+    glGenBuffers(1, addr vboId[2])
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[2])
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.normals[0], GL_STATIC_DRAW)
+    glVertexAttribPointer(2, 3, cGL_FLOAT, GL_FALSE, 0, nil)
+    glEnableVertexAttribArray(2)
+  else:
+    glVertexAttrib3f(2, 1.0, 1.0, 1.0)
+    glDisableVertexAttribArray(2)  
+
+  glVertexAttrib4f(3, 1.0, 1.0, 1.0, 1.0)
+  glDisableVertexAttribArray(3)
 
   if mesh.indices != nil:
     glGenBuffers(1, addr vboId[6])
@@ -893,6 +913,8 @@ proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
 
 proc zglDrawMesh*(mesh: Mesh, material: Material) =
   glUseProgram(material.shader.id)
+
+  glUniform4f(material.shader.colDiffuseLoc, float material.colDiffuse.r/255, float material.colDiffuse.g/255, float material.colDiffuse.b/255, float material.colDiffuse.a/255)
 
   let matView = modelView
   let matProjection = projection

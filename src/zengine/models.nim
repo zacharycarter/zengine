@@ -1,4 +1,4 @@
-import logging, zgl, zmath, sdl2, os, strutils, assimp, opengl, texture
+import logging, zgl, zmath, sdl2, os, strutils, assimp, opengl, texture, color
 
 type
   Model = object
@@ -199,11 +199,17 @@ proc init(material: var Material, some: PMaterial, filename: string) =
     material.texDiffuse = loadTexture(filename)
   
   material.shader = getDefaultShader()
+  material.colDiffuse = WHITE
 
 proc init(mesh: var Mesh, some: PMesh) =
   mesh.vertices = newSeq[GLfloat](some.vertexCount*3)
   mesh.texCoords = newSeq[GLfloat](some.vertexCount*2)
-  mesh.indices = newSeq[GLushort](some.faceCount * 3)
+  
+  if some.hasFaces():
+    mesh.indices = newSeq[GLushort](some.faceCount * 3)
+
+  if some.hasNormals():
+    mesh.normals = newSeq[GLfloat](some.vertexCount*3)
 
   var vCounter = 0
   for v in 0..<some.vertexCount:
@@ -218,14 +224,23 @@ proc init(mesh: var Mesh, some: PMesh) =
     mesh.texCoords[tcCounter] = some.texCoords[0].offset(tc)[].x
     mesh.texCoords[tcCounter + 1] = some.texCoords[0].offset(tc)[].y
     inc(tcCounter, 2)
+  
+  if some.hasNormals():
+    var nCounter = 0
+    for n in 0..<some.vertexCount:
+      mesh.normals[nCounter] = some.normals.offset(n).x
+      mesh.normals[nCounter + 1] = some.normals.offset(n).y
+      mesh.normals[nCounter + 2] = some.normals.offset(n).z
+      inc(nCounter, 3)
 
-  var fCounter = 0
-  for f in 0..<some.faceCount:
-    mesh.indices[fCounter] = GLushort some.faces[f].indices[0]
-    mesh.indices[fCounter + 1] = GLushort some.faces[f].indices[1]
-    mesh.indices[fCounter + 2] = GLushort some.faces[f].indices[2]
-    inc(mesh.triangleCount)
-    inc(fCounter, 3)
+  if some.hasFaces():
+    var fCounter = 0
+    for f in 0..<some.faceCount:
+      mesh.indices[fCounter] = GLushort some.faces[f].indices[0]
+      mesh.indices[fCounter + 1] = GLushort some.faces[f].indices[1]
+      mesh.indices[fCounter + 2] = GLushort some.faces[f].indices[2]
+      inc(mesh.triangleCount)
+      inc(fCounter, 3)
 
   zglLoadMesh(mesh, false)
 

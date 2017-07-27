@@ -19,10 +19,10 @@ var
   mouseXRel = 0
   mouseYRel = 0
 
-#camera.setMode(CameraMode.Free)
-camera.setMode(CameraMode.FirstPerson)
+camera.setMode(CameraMode.Free)
+#camera.setMode(CameraMode.FirstPerson)
 
-var model = loadModel("examples/data/cyborg/cyborg.obj")
+var model = loadModel("examples/data/models/cyborg/cyborg.obj")
 
 while running:
   mouseWheelMovement = 0
