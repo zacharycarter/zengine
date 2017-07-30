@@ -191,15 +191,50 @@ proc drawPlane*(centerPos: Vector3, size: Vector2, color: ZColor) =
   zglEnd()
   zglPopMatrix()
 
-proc init(material: var Material, some: PMaterial, filename: string) =
+proc init(material: var Material, some: PMaterial, filename: string, shader: Shader) =
   var path : AIString
   if getTexture(some, TexDiffuse, 0, addr path) == ReturnSuccess:
     let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
     material.texDiffuse = loadTexture(filename)
+
+  if getTexture(some, TexNormals, 0, addr path) == ReturnSuccess:
+   let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+    
+   material.texNormal = loadTexture(filename)
   
-  material.shader = getDefaultShader()
+  if getTexture(some, TexSpecular, 0, addr path) == ReturnSuccess:
+   let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+    
+   material.texSpecular = loadTexture(filename)
+  
+  material.shader = shader
+  
+  
+  var color: TColor3d
   material.colDiffuse = WHITE
+  if getMaterialColor(some, AI_MATKEY_COLOR_DIFFUSE, 0, 0, addr color) == ReturnSuccess:
+   material.colDiffuse.r = int color.r * 255.0
+   material.colDiffuse.g = int color.g * 255.0
+   material.colDiffuse.b = int color.b * 255.0
+    
+  material.colAmbient = WHITE
+  if getMaterialColor(some, AI_MATKEY_COLOR_AMBIENT, 0, 0, addr color) == ReturnSuccess:
+   material.colAmbient.r = int color.r * 255.0
+   material.colAmbient.g = int color.g * 255.0
+   material.colAmbient.b = int color.b * 255.0
+
+  material.colSpecular = WHITE
+  if getMaterialColor(some, AI_MATKEY_COLOR_SPECULAR, 0, 0, addr color) == ReturnSuccess:
+   material.colSpecular.r = int color.r * 255.0
+   material.colSpecular.g = int color.g * 255.0
+   material.colSpecular.b = int color.b * 255.0
+
+  var shininess: cfloat 
+  material.glossiness = 100.0
+  if getMaterialFloatArray(some, AI_MATKEY_SHININESS, 0, 0, addr shininess, nil) == ReturnSuccess:
+   material.glossiness = shininess
+
 
 proc init(mesh: var Mesh, some: PMesh) =
   mesh.vertices = newSeq[GLfloat](some.vertexCount*3)
@@ -246,7 +281,7 @@ proc init(mesh: var Mesh, some: PMesh) =
 
   mesh.materialIndex = some.materialIndex
 
-proc init(model: var Model, scene: PScene, filename: string) =
+proc init(model: var Model, scene: PScene, filename: string, shader: Shader) =
   model.meshes = newSeq[Mesh](scene.meshCount)
   model.materials = newSeq[Material](scene.materialCount)
 
@@ -257,16 +292,16 @@ proc init(model: var Model, scene: PScene, filename: string) =
 
   m = 0
   for material in model.materials.mitems:
-    material.init(scene.materials[m], filename)
+    material.init(scene.materials[m], filename, shader)
     inc(m)
 
-proc loadModel*(filename: string): Model =
+proc loadModel*(filename: string, shader: Shader = getDefaultShader()): Model =
   let scene = aiImportFile(filename, ASSIMP_LOAD_FLAGS)
   if scene.isNil:
     warn("[$1] Mesh could not be loaded." % filename)
     return
   
-  result.init(scene, filename)
+  result.init(scene, filename, shader)
 
 proc drawModel*(model: var Model, tint: ZColor) =
   for mesh in model.meshes:

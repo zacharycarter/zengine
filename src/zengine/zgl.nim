@@ -1,4 +1,4 @@
-import logging, math, opengl, sdl2, strutils, util, zmath
+import logging, math, opengl, sdl2, strutils, util, zmath, os
 
 const 
   MATRIX_STACK_SIZE = 16
@@ -13,14 +13,16 @@ const
   DEFAULT_ATTRIB_COLOR_NAME = "inColor"
 
 type
-  Shader = object
+  Shader* = object
     id: GLuint
     vertexLoc: GLint
     texCoordLoc: GLint
     normalLoc: GLint
     colDiffuseLoc: GLint
+    colAmbientLoc: GLint
+    colSpecularLoc: GLint
     colorLoc: GLint
-    mapTexture0Loc: GLint
+    mapTexture0Loc, mapTexture1Loc, mapTexture2Loc: GLint
     mvpLoc: GLint
   
   ZColor* = object
@@ -65,8 +67,9 @@ type
 
   Material* = object
     shader*: Shader
-    texDiffuse*: Texture2D
-    colDiffuse*: ZColor
+    texDiffuse*, texNormal*, texSpecular*: Texture2D
+    colDiffuse*, colAmbient*, colSpecular*: ZColor
+    glossiness*: float
 
   Mesh* = object
     vertexCount*: int
@@ -227,6 +230,14 @@ proc loadShaderProgram*(vertexShaderStr, fragmentShaderStr: string): GLuint =
 
   return program
 
+proc getShaderLocation*(shader: Shader, uniformName: string): GLint =
+  result = -1
+
+  result = glGetUniformLocation(shader.id, uniformName)
+
+  if result == -1:
+    debug("[SHDR ID $1] Shader location for $2 could not be found" % [$shader.id.int, uniformName])
+
 proc loadDefaultShaderLocations(shader: var Shader) =
   shader.vertexLoc = glGetAttribLocation(shader.id, DEFAULT_ATTRIB_POSITION_NAME)
   shader.texCoordLoc = glGetAttribLocation(shader.id, DEFAULT_ATTRIB_TEXCOORD_NAME)
@@ -236,8 +247,26 @@ proc loadDefaultShaderLocations(shader: var Shader) =
   shader.mvpLoc = glGetUniformLocation(shader.id, "mvpMatrix")
 
   shader.colDiffuseLoc = glGetUniformLocation(shader.id, "colDiffuse")
+  shader.colAmbientLoc = glGetUniformLocation(shader.id, "colAmbient")
+  shader.colSpecularLoc = glGetUniformLocation(shader.id, "colSpecular")
 
   shader.mapTexture0Loc = glGetUniformLocation(shader.id, "texture0")
+  shader.mapTexture1Loc = glGetUniformLocation(shader.id, "texture1")
+  shader.mapTexture2Loc = glGetUniformLocation(shader.id, "texture2")
+
+proc loadShader*(vsFilePath, fsFilePath: string): Shader =
+  var 
+    vsFileContent = ""
+    fsFileContent = ""
+  if fileExists(vsFilePath):
+    vsFileContent = readFile(vsFilePath)
+  if fileExists(fsFilePath):
+    fsFileContent = readFile(fsFilePath)
+  
+  result.id = loadShaderProgram(vsFileContent, fsFileContent)
+
+  if result.id != 0:
+    loadDefaultShaderLocations(result)
 
 proc loadDefaultShader(): Shader =
 
@@ -383,7 +412,13 @@ proc zglLoadTexture*(data: pointer, width, height: int, pixelFormat: uint32, mip
     else:
       glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
   else:
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+    case pixelFormat
+    of sdl2.SDL_PIXELFORMAT_RGB888:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+    of sdl2.SDL_PIXELFORMAT_RGB24:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+    else:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
@@ -890,10 +925,23 @@ proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
     glEnableVertexAttribArray(2)
   else:
     glVertexAttrib3f(2, 1.0, 1.0, 1.0)
-    glDisableVertexAttribArray(2)  
+    glDisableVertexAttribArray(2)
 
-  glVertexAttrib4f(3, 1.0, 1.0, 1.0, 1.0)
-  glDisableVertexAttribArray(3)
+  if mesh.colors != nil:
+   glGenBuffers(1, addr vboId[3])
+   glBindBuffer(GL_ARRAY_BUFFER, vboId[3])
+   glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*mesh.vertexCount, addr mesh.colors[0], GL_STATIC_DRAW)
+   glVertexAttribPointer(3, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil)
+   glEnableVertexAttribArray(3)
+  else:
+    glVertexAttrib4f(3, 1.0, 1.0, 1.0, 1.0)
+    glDisableVertexAttribArray(3)
+
+  glVertexAttrib3f(4, 0.0f, 0.0f, 0.0f)
+  glDisableVertexAttribArray(4)
+  
+  glVertexAttrib2f(5, 0.0f, 0.0f)
+  glDisableVertexAttribArray(5)
 
   if mesh.indices != nil:
     glGenBuffers(1, addr vboId[6])
@@ -916,14 +964,54 @@ proc zglDrawMesh*(mesh: Mesh, material: Material) =
 
   glUniform4f(material.shader.colDiffuseLoc, float material.colDiffuse.r/255, float material.colDiffuse.g/255, float material.colDiffuse.b/255, float material.colDiffuse.a/255)
 
+  if material.shader.colAmbientLoc != -1:
+   glUniform4f(material.shader.colAmbientLoc, float material.colAmbient.r/255, float material.colAmbient.g/255, float material.colAmbient.b/255, float material.colAmbient.a/255)
+  
+  if material.shader.colSpecularLoc != -1:
+   glUniform4f(material.shader.colSpecularLoc, float material.colSpecular.r/255, float material.colSpecular.g/255, float material.colSpecular.b/255, float material.colSpecular.a/255)
+
   let matView = modelView
   let matProjection = projection
 
-  let matModelView = matrixMultiply(matrixIdentity(), matView)
+  var transform = matrixIdentity()
+  let matModelView = matrixMultiply(transform, matView)
+
+  if material.shader.id != defaultShader.id:
+    let modelMatrixLoc = glGetUniformLocation(material.shader.id, "modelMatrix")
+
+    if modelMatrixLoc != -1:
+      var transInvTransform  = transform
+      matrixTranspose(transInvTransform)
+      matrixInvert(transInvTransform)
+
+      var transInvTransformFloatArray = matrixToFloat(transInvTransform)
+      glUniformMatrix4fv(modelMatrixLoc, 1, false, addr transInvTransformFloatArray[0])
+
+    let viewDirLoc = glGetUniformLocation(material.shader.id, "viewDir")
+    if viewDirLoc != -1:
+      glUniform3f(viewDirLoc, matView.m8, matView.m9, matView.m10)
+    
+    let glossinessLoc = glGetUniformLocation(material.shader.id, "glossiness")
+    if glossinessLoc != -1:
+      glUniform1f(glossinessLoc, material.glossiness)
 
   glActiveTexture(GL_TEXTURE0)
   glBindTexture(GL_TEXTURE_2D, material.texDiffuse.id)
   glUniform1i(material.shader.mapTexture0Loc, 0)
+
+  if material.texNormal.id != 0 and material.shader.mapTexture1Loc != -1:
+    glUniform1i(glGetUniformLocation(material.shader.id, "useNormal"), 1)
+
+    glActiveTexture(GL_TEXTURE1)
+    glBindTexture(GL_TEXTURE_2D, material.texNormal.id)
+    glUniform1i(material.shader.mapTexture1Loc, 1)
+
+  if material.texSpecular.id != 0 and material.shader.mapTexture2Loc != -1:
+    glUniform1i(glGetUniformLocation(material.shader.id, "useSpecular"), 1)
+    
+    glActiveTexture(GL_TEXTURE2)
+    glBindTexture(GL_TEXTURE_2D, material.texSpecular.id)
+    glUniform1i(material.shader.mapTexture2Loc, 2)
 
   glBindVertexArray(mesh.vaoId)
 
@@ -948,3 +1036,31 @@ proc zglDrawMesh*(mesh: Mesh, material: Material) =
 
   projection = matProjection
   modelview = matView
+
+proc setShaderValuei*(shader: Shader, uniformLoc: int, value: ptr array[0..7, GLint], size: int) =
+  glUseProgram(shader.id)
+  case size
+  of 1:
+    glUniform1iv(uniformLoc, 1, addr value[0])
+  of 2:
+    glUniform2iv(uniformLoc, 1, addr value[0])
+  of 3:
+    glUniform3iv(uniformLoc, 1, addr value[0])
+  of 4:
+    glUniform4iv(uniformLoc, 1, addr value[0])
+  else:
+    warn("Shader value int array size not supported")
+
+proc setShaderValue*(shader: Shader, uniformLoc: int, value: ptr array[0..7, GLfloat], size: int) =
+  glUseProgram(shader.id)
+  case size
+  of 1:
+    glUniform1fv(uniformLoc, 1, addr value[0])
+  of 2:
+    glUniform2fv(uniformLoc, 1, addr value[0])
+  of 3:
+    glUniform3fv(uniformLoc, 1, addr value[0])
+  of 4:
+    glUniform4fv(uniformLoc, 1, addr value[0])
+  else:
+    warn("Shader value float array size not supported")
