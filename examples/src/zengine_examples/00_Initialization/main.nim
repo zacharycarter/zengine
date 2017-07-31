@@ -2,7 +2,7 @@ import zengine, sdl2, opengl
 
 type
   LightKind = enum
-    Directional, Point, Spot
+    Point, Directional, Spot
   
   Light = ref object
     id: int
@@ -51,29 +51,29 @@ proc setShaderLightsValues(shader: Shader) =
   for i in 0..<MAX_LIGHTS:
     if i < lightsCount:
       tempInt[0] = lights[i].enabled.GLint
-      setShaderValuei(shader, lightsLocs[i][0], addr tempInt, 1)
+      setShaderValuei(shader, lightsLocs[i][0].GLint, tempInt, 1)
       
       tempInt[0] = lights[i].kind.GLint
-      setShaderValuei(shader, lightsLocs[i][1], addr tempInt, 1)
+      setShaderValuei(shader, lightsLocs[i][1].GLint, tempInt, 1)
 
       tempFloat[0] = lights[i].diffuse.r.float/255.0
       tempFloat[1] = lights[i].diffuse.g.float/255.0
       tempFloat[2] = lights[i].diffuse.b.float/255.0
       tempFloat[3] = lights[i].diffuse.a.float/255.0
-      setShaderValue(shader, lightsLocs[i][5], addr tempFloat, 4)
+      setShaderValue(shader, lightsLocs[i][5].GLint, tempFloat, 4)
 
       tempFloat[0] = lights[i].intensity
-      setShaderValue(shader, lightsLocs[i][6], addr tempFloat, 1)
+      setShaderValue(shader, lightsLocs[i][6].GLint, tempFloat, 1)
 
       case lights[i].kind:
         of LightKind.Point:
           tempFloat[0] = lights[i].position.x
           tempFloat[1] = lights[i].position.y
           tempFloat[2] = lights[i].position.z
-          setShaderValue(shader, lightsLocs[i][2], addr tempFloat, 3)
+          setShaderValue(shader, lightsLocs[i][2].GLint, tempFloat, 3)
 
           tempFloat[0] = lights[i].radius
-          setShaderValue(shader, lightsLocs[i][4], addr tempFloat, 1)
+          setShaderValue(shader, lightsLocs[i][4].GLint, tempFloat, 1)
         of LightKind.Directional:
           var direction = vectorSubtract(lights[i].target, lights[i].position)
           vectorNormalize(direction)
@@ -81,12 +81,12 @@ proc setShaderLightsValues(shader: Shader) =
           tempFloat[0] = direction.x
           tempFloat[1] = direction.y
           tempFloat[2] = direction.z
-          setShaderValue(shader, lightsLocs[i][3], addr tempFloat, 3)
+          setShaderValue(shader, lightsLocs[i][3].GLint, tempFloat, 3)
         of LightKind.Spot:
           tempFloat[0] = lights[i].position.x
           tempFloat[1] = lights[i].position.y
           tempFloat[2] = lights[i].position.z
-          setShaderValue(shader, lightsLocs[i][2], addr tempFloat, 3)
+          setShaderValue(shader, lightsLocs[i][2].GLint, tempFloat, 3)
 
           var direction = vectorSubtract(lights[i].target, lights[i].position)
           vectorNormalize(direction)
@@ -94,13 +94,13 @@ proc setShaderLightsValues(shader: Shader) =
           tempFloat[0] = direction.x
           tempFloat[1] = direction.y
           tempFloat[2] = direction.z
-          setShaderValue(shader, lightsLocs[i][3], addr tempFloat, 3)
+          setShaderValue(shader, lightsLocs[i][3].GLint, tempFloat, 3)
 
           tempFloat[0] = lights[i].coneAngle
-          setShaderValue(shader, lightsLocs[i][7], addr tempFloat, 1)
+          setShaderValue(shader, lightsLocs[i][7].GLint, tempFloat, 1)
     else:
       tempInt[0] = 0
-      setShaderValuei(shader, lightsLocs[i][0], addr tempInt, 1)
+      setShaderValuei(shader, lightsLocs[i][0].GLint, tempInt, 1)
 
 
 proc getShaderLightsLocation(shader: Shader) =
@@ -175,11 +175,21 @@ var model = loadModel("examples/data/models/cyborg/cyborg.obj", shader)
 
 getShaderLightsLocation(shader)
 
-var spotLight = createLight(LightKind.Spot, Vector3(x:3.0, y:5.0, z:2.0), ZColor(r:255, g:255, b:255, a:255))
+var spotLight = createLight(LightKind.Spot, Vector3(x:0.0, y:5.0, z:0.0), ZColor(r:255, g:255, b:255, a:255))
 spotLight.target = Vector3(x: 0.0, y: 0.0, z: 0.0)
 spotLight.intensity = 2.0
-spotlight.diffuse = ZColor(r: 255, g: 100, b: 100, a: 255)
+spotlight.diffuse = ZColor(r: 0, g: 0, b: 255, a: 255)
 spotLight.coneAngle = 60.0
+
+var dirLight = createLight(LightKind.Directional, Vector3(x:0.0, y: -3.0, z: -3.0), ZColor(r:0, g:0, b:255, a:255))
+dirLight.target = Vector3(x: 1.0, y: -2.0, z: -2.0)
+dirLight.intensity = 2.0
+dirLight.diffuse = ZColor(r: 100, g:255, b:100, a:255)
+
+var pointLight = createLight(LightKind.Point, Vector3(x:0.0, y: 4.0, z: 5.0), ZColor(r:255, g:255, b:255, a:255))
+pointLight.intensity = 2.0
+pointLight.diffuse = ZColor(r: 100, g:100, b:255, a:255)
+pointLight.radius = 3.0
 
 setShaderLightsValues(shader)
 

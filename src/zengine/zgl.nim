@@ -1037,30 +1037,30 @@ proc zglDrawMesh*(mesh: Mesh, material: Material) =
   projection = matProjection
   modelview = matView
 
-proc setShaderValuei*(shader: Shader, uniformLoc: int, value: ptr array[0..7, GLint], size: int) =
+proc setShaderValuei*(shader: Shader, uniformLoc: GLint, data: openarray[GLint], size: int) =
   glUseProgram(shader.id)
   case size
   of 1:
-    glUniform1iv(uniformLoc, 1, addr value[0])
+    glUniform1iv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   of 2:
-    glUniform2iv(uniformLoc, 1, addr value[0])
+    glUniform2iv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   of 3:
-    glUniform3iv(uniformLoc, 1, addr value[0])
+    glUniform3iv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   of 4:
-    glUniform4iv(uniformLoc, 1, addr value[0])
+    glUniform4iv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   else:
     warn("Shader value int array size not supported")
 
-proc setShaderValue*(shader: Shader, uniformLoc: int, value: ptr array[0..7, GLfloat], size: int) =
+proc setShaderValue*(shader: Shader, uniformLoc: GLint, data: openarray[GLfloat], size: int) =
   glUseProgram(shader.id)
   case size
   of 1:
-    glUniform1fv(uniformLoc, 1, addr value[0])
+    glUniform1fv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   of 2:
-    glUniform2fv(uniformLoc, 1, addr value[0])
+    glUniform2fv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   of 3:
-    glUniform3fv(uniformLoc, 1, addr value[0])
+    glUniform3fv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   of 4:
-    glUniform4fv(uniformLoc, 1, addr value[0])
+    glUniform4fv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   else:
     warn("Shader value float array size not supported")
