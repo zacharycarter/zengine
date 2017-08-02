@@ -71,19 +71,33 @@ type
     colDiffuse*, colAmbient*, colSpecular*: ZColor
     glossiness*: float
 
-  Mesh* = object
-    vertexCount*: int
-    triangleCount*: int
-    vertices*: seq[GLfloat]
-    texCoords*: seq[GLfloat]
-    texCoords2: seq[float]
-    normals*: seq[GLfloat]
-    tangents: seq[float]
-    colors: seq[cuchar]
-    indices*: seq[GLushort]
+  Model* = object
+    meshEntries*: seq[MeshEntry]
     vaoId: GLuint
     vboId: array[7, GLuint]
-    materialIndex*: int
+    vertices*: seq[GLfloat]
+    vertexCount*, triangleCount*: int
+    materials*: seq[Material]
+    indices*: seq[GLushort]
+
+  MeshEntry* = object
+      materialIndex*: int
+      baseVertex*, baseIndex*: int
+      indexCount*: int
+      
+  # Mesh* = object
+  #   vertexCount*: int
+  #   triangleCount*: int
+  #   vertices*: seq[GLfloat]
+  #   texCoords*: seq[GLfloat]
+  #   texCoords2: seq[float]
+  #   normals*: seq[GLfloat]
+  #   tangents: seq[float]
+  #   colors: seq[cuchar]
+  #   indices*: seq[GLushort]
+  #   vaoId: GLuint
+  #   vboId: array[7, GLuint]
+  #   materialIndex*: int
 
 var
   stack: array[MATRIX_STACK_SIZE, Matrix]
@@ -889,15 +903,15 @@ proc zglEnableDepthTest*() =
 proc zglDisableDepthTest*() =
   glDisable(GL_DEPTH_TEST)
 
-proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
-  mesh.vaoId = 0
-  mesh.vboId[0] = 0
-  mesh.vboId[1] = 0
-  mesh.vboId[2] = 0
-  mesh.vboId[3] = 0
-  mesh.vboId[4] = 0
-  mesh.vboId[5] = 0
-  mesh.vboId[6] = 0
+proc zglLoadModel*(model: var Model, dynamic: bool) =
+  model.vaoId = 0
+  model.vboId[0] = 0
+  model.vboId[1] = 0
+  model.vboId[2] = 0
+  model.vboId[3] = 0
+  model.vboId[4] = 0
+  model.vboId[5] = 0
+  model.vboId[6] = 0
 
   var vaoId: GLuint = 0
   var vboId: array[7, GLuint]
@@ -905,130 +919,57 @@ proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
   glGenVertexArrays(1, addr vaoId)
   glBindVertexArray(vaoId)
 
+  let drawHint = if dynamic: GL_DYNAMIC_DRAW else: GL_STATIC_DRAW
+
   glGenBuffers(1, addr vboId[0])
   glBindBuffer(GL_ARRAY_BUFFER, vboId[0])
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.vertices[0], GL_STATIC_DRAW)
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*model.vertexCount, addr model.vertices[0], drawHint)
   glVertexAttribPointer(0, 3, cGL_FLOAT, GL_FALSE, 0, nil)
   glEnableVertexAttribArray(0)
 
-  glGenBuffers(1, addr vboId[1])
-  glBindBuffer(GL_ARRAY_BUFFER, vboId[1])
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*2*mesh.vertexCount, addr mesh.texcoords[0], GL_STATIC_DRAW);
-  glVertexAttribPointer(1, 2, cGL_FLOAT, GL_FALSE, 0, nil)
-  glEnableVertexAttribArray(1)
-
-  if mesh.normals != nil:
-    glGenBuffers(1, addr vboId[2])
-    glBindBuffer(GL_ARRAY_BUFFER, vboId[2])
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.normals[0], GL_STATIC_DRAW)
-    glVertexAttribPointer(2, 3, cGL_FLOAT, GL_FALSE, 0, nil)
-    glEnableVertexAttribArray(2)
-  else:
-    glVertexAttrib3f(2, 1.0, 1.0, 1.0)
-    glDisableVertexAttribArray(2)
-
-  if mesh.colors != nil:
-   glGenBuffers(1, addr vboId[3])
-   glBindBuffer(GL_ARRAY_BUFFER, vboId[3])
-   glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*mesh.vertexCount, addr mesh.colors[0], GL_STATIC_DRAW)
-   glVertexAttribPointer(3, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil)
-   glEnableVertexAttribArray(3)
-  else:
-    glVertexAttrib4f(3, 1.0, 1.0, 1.0, 1.0)
-    glDisableVertexAttribArray(3)
-
-  glVertexAttrib3f(4, 0.0f, 0.0f, 0.0f)
-  glDisableVertexAttribArray(4)
-  
-  glVertexAttrib2f(5, 0.0f, 0.0f)
-  glDisableVertexAttribArray(5)
-
-  if mesh.indices != nil:
+  if model.indices != nil:
     glGenBuffers(1, addr vboId[6])
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[6])
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*mesh.triangleCount*3, addr mesh.indices[0], GL_STATIC_DRAW)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*model.triangleCount*3, addr model.indices[0], drawHint)
 
-  mesh.vboId[0] = vboId[0]
-  mesh.vboId[1] = vboId[1]
-  mesh.vboId[2] = vboId[2]
-  mesh.vboId[3] = vboId[1]
-  mesh.vboId[4] = vboId[2]
-  mesh.vboId[5] = vboId[1]
-  mesh.vboId[6] = vboId[6]
+  model.vboId[0] = vboId[0]
+  model.vboId[1] = vboId[1]
+  model.vboId[2] = vboId[2]
+  model.vboId[3] = vboId[1]
+  model.vboId[4] = vboId[2]
+  model.vboId[5] = vboId[1]
+  model.vboId[6] = vboId[6]
   
   
-  mesh.vaoId = vaoId
+  model.vaoId = vaoId
 
-proc zglDrawMesh*(mesh: Mesh, material: Material) =
-  glUseProgram(material.shader.id)
-
-  glUniform4f(material.shader.colDiffuseLoc, float material.colDiffuse.r/255, float material.colDiffuse.g/255, float material.colDiffuse.b/255, float material.colDiffuse.a/255)
-
-  if material.shader.colAmbientLoc != -1:
-   glUniform4f(material.shader.colAmbientLoc, float material.colAmbient.r/255, float material.colAmbient.g/255, float material.colAmbient.b/255, float material.colAmbient.a/255)
-  
-  if material.shader.colSpecularLoc != -1:
-   glUniform4f(material.shader.colSpecularLoc, float material.colSpecular.r/255, float material.colSpecular.g/255, float material.colSpecular.b/255, float material.colSpecular.a/255)
-
+proc zglDrawModel*(model: Model) =
   let matView = modelView
   let matProjection = projection
 
   var transform = matrixIdentity()
   let matModelView = matrixMultiply(transform, matView)
 
-  if material.shader.id != defaultShader.id:
-    let modelMatrixLoc = glGetUniformLocation(material.shader.id, "modelMatrix")
-
-    if modelMatrixLoc != -1:
-      var transInvTransform  = transform
-      matrixTranspose(transInvTransform)
-      matrixInvert(transInvTransform)
-
-      var transInvTransformFloatArray = matrixToFloat(transInvTransform)
-      glUniformMatrix4fv(modelMatrixLoc, 1, false, addr transInvTransformFloatArray[0])
-
-    let viewDirLoc = glGetUniformLocation(material.shader.id, "viewDir")
-    if viewDirLoc != -1:
-      glUniform3f(viewDirLoc, matView.m8, matView.m9, matView.m10)
-    
-    let glossinessLoc = glGetUniformLocation(material.shader.id, "glossiness")
-    if glossinessLoc != -1:
-      glUniform1f(glossinessLoc, material.glossiness)
-
-  glActiveTexture(GL_TEXTURE0)
-  glBindTexture(GL_TEXTURE_2D, material.texDiffuse.id)
-  glUniform1i(material.shader.mapTexture0Loc, 0)
-
-  if material.texNormal.id != 0 and material.shader.mapTexture1Loc != -1:
-    glUniform1i(glGetUniformLocation(material.shader.id, "useNormal"), 1)
-
-    glActiveTexture(GL_TEXTURE1)
-    glBindTexture(GL_TEXTURE_2D, material.texNormal.id)
-    glUniform1i(material.shader.mapTexture1Loc, 1)
-
-  if material.texSpecular.id != 0 and material.shader.mapTexture2Loc != -1:
-    glUniform1i(glGetUniformLocation(material.shader.id, "useSpecular"), 1)
-    
-    glActiveTexture(GL_TEXTURE2)
-    glBindTexture(GL_TEXTURE_2D, material.texSpecular.id)
-    glUniform1i(material.shader.mapTexture2Loc, 2)
-
-  glBindVertexArray(mesh.vaoId)
+  glBindVertexArray(model.vaoId)
 
   modelView = matModelView
   let matMVP = matrixMultiply(modelview, projection)
   var matMVPFloatArray = matrixToFloat(matMVP)
-  glUniformMatrix4fv(material.shader.mvpLoc, 1, false, addr matMVPFloatArray[0])
 
-  if mesh.indices != nil:
-    assert mesh.triangleCount * 3 == mesh.indices.len
-    glDrawElements(GL_TRIANGLES, mesh.triangleCount*3, GL_UNSIGNED_SHORT, nil)
-  else:
-    glDrawArrays(GL_TRIANGLES, 0, mesh.vertexCount)
+  for meshEntry in model.meshEntries:
+    let materialShader = model.materials[meshEntry.materialIndex].shader
+
+    glUseProgram(materialShader.id)
+
+    glUniformMatrix4fv(materialShader.mvpLoc, 1, false, addr matMVPFloatArray[0])
 
 
-  glActiveTexture(GL_TEXTURE0)
-  glBindTexture(GL_TEXTURE_2D, 0)
+    if model.indices != nil:
+      assert model.triangleCount * 3 == model.indices.len
+      glDrawElements(GL_TRIANGLES, model.triangleCount*3, GL_UNSIGNED_SHORT, nil)
+    else:
+      glDrawArrays(GL_TRIANGLES, 0, model.vertexCount)
+
 
   glBindVertexArray(0)
 
@@ -1036,6 +977,155 @@ proc zglDrawMesh*(mesh: Mesh, material: Material) =
 
   projection = matProjection
   modelview = matView
+
+
+# proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
+#   mesh.vaoId = 0
+#   mesh.vboId[0] = 0
+#   mesh.vboId[1] = 0
+#   mesh.vboId[2] = 0
+#   mesh.vboId[3] = 0
+#   mesh.vboId[4] = 0
+#   mesh.vboId[5] = 0
+#   mesh.vboId[6] = 0
+
+#   var vaoId: GLuint = 0
+#   var vboId: array[7, GLuint]
+
+#   glGenVertexArrays(1, addr vaoId)
+#   glBindVertexArray(vaoId)
+
+#   glGenBuffers(1, addr vboId[0])
+#   glBindBuffer(GL_ARRAY_BUFFER, vboId[0])
+#   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.vertices[0], GL_STATIC_DRAW)
+#   glVertexAttribPointer(0, 3, cGL_FLOAT, GL_FALSE, 0, nil)
+#   glEnableVertexAttribArray(0)
+
+#   glGenBuffers(1, addr vboId[1])
+#   glBindBuffer(GL_ARRAY_BUFFER, vboId[1])
+#   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*2*mesh.vertexCount, addr mesh.texcoords[0], GL_STATIC_DRAW);
+#   glVertexAttribPointer(1, 2, cGL_FLOAT, GL_FALSE, 0, nil)
+#   glEnableVertexAttribArray(1)
+
+#   if mesh.normals != nil:
+#     glGenBuffers(1, addr vboId[2])
+#     glBindBuffer(GL_ARRAY_BUFFER, vboId[2])
+#     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.normals[0], GL_STATIC_DRAW)
+#     glVertexAttribPointer(2, 3, cGL_FLOAT, GL_FALSE, 0, nil)
+#     glEnableVertexAttribArray(2)
+#   else:
+#     glVertexAttrib3f(2, 1.0, 1.0, 1.0)
+#     glDisableVertexAttribArray(2)
+
+#   if mesh.colors != nil:
+#    glGenBuffers(1, addr vboId[3])
+#    glBindBuffer(GL_ARRAY_BUFFER, vboId[3])
+#    glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*mesh.vertexCount, addr mesh.colors[0], GL_STATIC_DRAW)
+#    glVertexAttribPointer(3, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil)
+#    glEnableVertexAttribArray(3)
+#   else:
+#     glVertexAttrib4f(3, 1.0, 1.0, 1.0, 1.0)
+#     glDisableVertexAttribArray(3)
+
+#   glVertexAttrib3f(4, 0.0f, 0.0f, 0.0f)
+#   glDisableVertexAttribArray(4)
+  
+#   glVertexAttrib2f(5, 0.0f, 0.0f)
+#   glDisableVertexAttribArray(5)
+
+#   if mesh.indices != nil:
+#     glGenBuffers(1, addr vboId[6])
+#     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[6])
+#     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*mesh.triangleCount*3, addr mesh.indices[0], GL_STATIC_DRAW)
+
+#   mesh.vboId[0] = vboId[0]
+#   mesh.vboId[1] = vboId[1]
+#   mesh.vboId[2] = vboId[2]
+#   mesh.vboId[3] = vboId[1]
+#   mesh.vboId[4] = vboId[2]
+#   mesh.vboId[5] = vboId[1]
+#   mesh.vboId[6] = vboId[6]
+  
+  
+#   mesh.vaoId = vaoId
+
+# proc zglDrawMesh*(mesh: Mesh, material: Material) =
+#   glUseProgram(material.shader.id)
+
+#   glUniform4f(material.shader.colDiffuseLoc, float material.colDiffuse.r/255, float material.colDiffuse.g/255, float material.colDiffuse.b/255, float material.colDiffuse.a/255)
+
+#   if material.shader.colAmbientLoc != -1:
+#    glUniform4f(material.shader.colAmbientLoc, float material.colAmbient.r/255, float material.colAmbient.g/255, float material.colAmbient.b/255, float material.colAmbient.a/255)
+  
+#   if material.shader.colSpecularLoc != -1:
+#    glUniform4f(material.shader.colSpecularLoc, float material.colSpecular.r/255, float material.colSpecular.g/255, float material.colSpecular.b/255, float material.colSpecular.a/255)
+
+#   let matView = modelView
+#   let matProjection = projection
+
+#   var transform = matrixIdentity()
+#   let matModelView = matrixMultiply(transform, matView)
+
+#   if material.shader.id != defaultShader.id:
+#     let modelMatrixLoc = glGetUniformLocation(material.shader.id, "modelMatrix")
+
+#     if modelMatrixLoc != -1:
+#       var transInvTransform  = transform
+#       matrixTranspose(transInvTransform)
+#       matrixInvert(transInvTransform)
+
+#       var transInvTransformFloatArray = matrixToFloat(transInvTransform)
+#       glUniformMatrix4fv(modelMatrixLoc, 1, false, addr transInvTransformFloatArray[0])
+
+#     let viewDirLoc = glGetUniformLocation(material.shader.id, "viewDir")
+#     if viewDirLoc != -1:
+#       glUniform3f(viewDirLoc, matView.m8, matView.m9, matView.m10)
+    
+#     let glossinessLoc = glGetUniformLocation(material.shader.id, "glossiness")
+#     if glossinessLoc != -1:
+#       glUniform1f(glossinessLoc, material.glossiness)
+
+#   glActiveTexture(GL_TEXTURE0)
+#   glBindTexture(GL_TEXTURE_2D, material.texDiffuse.id)
+#   glUniform1i(material.shader.mapTexture0Loc, 0)
+
+#   if material.texNormal.id != 0 and material.shader.mapTexture1Loc != -1:
+#     glUniform1i(glGetUniformLocation(material.shader.id, "useNormal"), 1)
+
+#     glActiveTexture(GL_TEXTURE1)
+#     glBindTexture(GL_TEXTURE_2D, material.texNormal.id)
+#     glUniform1i(material.shader.mapTexture1Loc, 1)
+
+#   if material.texSpecular.id != 0 and material.shader.mapTexture2Loc != -1:
+#     glUniform1i(glGetUniformLocation(material.shader.id, "useSpecular"), 1)
+    
+#     glActiveTexture(GL_TEXTURE2)
+#     glBindTexture(GL_TEXTURE_2D, material.texSpecular.id)
+#     glUniform1i(material.shader.mapTexture2Loc, 2)
+
+#   glBindVertexArray(mesh.vaoId)
+
+#   modelView = matModelView
+#   let matMVP = matrixMultiply(modelview, projection)
+#   var matMVPFloatArray = matrixToFloat(matMVP)
+#   glUniformMatrix4fv(material.shader.mvpLoc, 1, false, addr matMVPFloatArray[0])
+
+#   if mesh.indices != nil:
+#     assert mesh.triangleCount * 3 == mesh.indices.len
+#     glDrawElements(GL_TRIANGLES, mesh.triangleCount*3, GL_UNSIGNED_SHORT, nil)
+#   else:
+#     glDrawArrays(GL_TRIANGLES, 0, mesh.vertexCount)
+
+
+#   glActiveTexture(GL_TEXTURE0)
+#   glBindTexture(GL_TEXTURE_2D, 0)
+
+#   glBindVertexArray(0)
+
+#   glUseProgram(0)
+
+#   projection = matProjection
+#   modelview = matView
 
 proc setShaderValuei*(shader: Shader, uniformLoc: GLint, data: openarray[GLint], size: int) =
   glUseProgram(shader.id)
