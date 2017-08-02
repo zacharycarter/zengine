@@ -178,7 +178,7 @@ getShaderLightsLocation(shader)
 var spotLight = createLight(LightKind.Spot, Vector3(x:0.0, y:5.0, z:0.0), ZColor(r:255, g:255, b:255, a:255))
 spotLight.target = Vector3(x: 0.0, y: 0.0, z: 0.0)
 spotLight.intensity = 2.0
-spotlight.diffuse = ZColor(r: 0, g: 0, b: 255, a: 255)
+spotlight.diffuse = ZColor(r: 255, g: 0, b: 255, a: 255)
 spotLight.coneAngle = 60.0
 
 var dirLight = createLight(LightKind.Directional, Vector3(x:0.0, y: -3.0, z: -3.0), ZColor(r:0, g:0, b:255, a:255))

@@ -235,78 +235,6 @@ proc init(material: var Material, some: PMaterial, filename: string, shader: Sha
   if getMaterialFloatArray(some, AI_MATKEY_SHININESS, 0, 0, addr shininess, nil) == ReturnSuccess:
    material.glossiness = shininess
 
-
-# proc init(mesh: var Mesh, some: PMesh) =
-#   mesh.vertices = newSeq[GLfloat](some.vertexCount*3)
-#   mesh.texCoords = newSeq[GLfloat](some.vertexCount*2)
-  
-#   if some.hasFaces():
-#     mesh.indices = newSeq[GLushort](some.faceCount * 3)
-
-#   if some.hasNormals():
-#     mesh.normals = newSeq[GLfloat](some.vertexCount*3)
-
-#   var vCounter = 0
-#   for v in 0..<some.vertexCount:
-#     mesh.vertices[vCounter] = some.vertices.offset(v)[].x
-#     mesh.vertices[vCounter + 1] = some.vertices.offset(v)[].y
-#     mesh.vertices[vCounter + 2] = some.vertices.offset(v)[].z
-#     inc(mesh.vertexCount)
-#     inc(vCounter, 3)
-
-#   var tcCounter = 0
-#   for tc in 0..<some.vertexCount:
-#     mesh.texCoords[tcCounter] = some.texCoords[0].offset(tc)[].x
-#     mesh.texCoords[tcCounter + 1] = some.texCoords[0].offset(tc)[].y
-#     inc(tcCounter, 2)
-  
-#   if some.hasNormals():
-#     var nCounter = 0
-#     for n in 0..<some.vertexCount:
-#       mesh.normals[nCounter] = some.normals.offset(n).x
-#       mesh.normals[nCounter + 1] = some.normals.offset(n).y
-#       mesh.normals[nCounter + 2] = some.normals.offset(n).z
-#       inc(nCounter, 3)
-
-#   if some.hasFaces():
-#     var fCounter = 0
-#     for f in 0..<some.faceCount:
-#       mesh.indices[fCounter] = GLushort some.faces[f].indices[0]
-#       mesh.indices[fCounter + 1] = GLushort some.faces[f].indices[1]
-#       mesh.indices[fCounter + 2] = GLushort some.faces[f].indices[2]
-#       inc(mesh.triangleCount)
-#       inc(fCounter, 3)
-
-#   zglLoadMesh(mesh, false)
-
-#   mesh.materialIndex = some.materialIndex
-
-# proc init(model: var Model, scene: PScene, filename: string, shader: Shader) =
-#   model.meshes = newSeq[Mesh](scene.meshCount)
-#   model.materials = newSeq[Material](scene.materialCount)
-
-#   var m = 0
-#   for mesh in model.meshes.mitems:
-#     mesh.init(scene.meshes[m])
-#     inc(m)
-
-#   m = 0
-#   for material in model.materials.mitems:
-#     material.init(scene.materials[m], filename, shader)
-#     inc(m)
-
-# proc drawModel*(model: var Model, tint: ZColor) =
-#   for mesh in model.meshes:
-#     zglDrawMesh(mesh, model.materials[mesh.materialIndex])
-
-# proc loadModel*(filename: string, shader: Shader = getDefaultShader()): Model =
-#   let scene = aiImportFile(filename, ASSIMP_LOAD_FLAGS)
-#   if scene.isNil:
-#     warn("[$1] Mesh could not be loaded." % filename)
-#     return
-  
-#   result.init(scene, filename, shader)
-
 proc drawModel*(model: var Model, tint: ZColor) =
   zglDrawModel(model)
 
@@ -325,13 +253,13 @@ proc initMesh(model: var Model, index: int, mesh: PMesh) =
     model.texCoords[tcCounter + 1] = mesh.texCoords[0].offset(tc)[].y
     inc(tcCounter, 2)
 
-  # if mesh.hasNormals():
-  #   var nCounter = 0
-  #   for n in 0..<mesh.vertexCount:
-  #     model.normals[nCounter] = mesh.normals.offset(n).x
-  #     model.normals[nCounter + 1] = mesh.normals.offset(n).y
-  #     model.normals[nCounter + 2] = mesh.normals.offset(n).z
-  #     inc(nCounter, 3)
+  if mesh.hasNormals():
+    var nCounter = 0
+    for n in 0..<mesh.vertexCount:
+      model.normals[nCounter] = mesh.normals.offset(n).x
+      model.normals[nCounter + 1] = mesh.normals.offset(n).y
+      model.normals[nCounter + 2] = mesh.normals.offset(n).z
+      inc(nCounter, 3)
 
   if mesh.hasFaces():
     var fCounter = 0
@@ -360,7 +288,7 @@ proc init(model: var Model, scene: PScene, filename: string, shader: Shader) =
 
   model.vertices = newSeq[GLfloat](numVertices*3)
   model.texCoords = newSeq[GLfloat](numVertices*2)
-  # model.normals = newSeq[GLfloat](numVertices*3)
+  model.normals = newSeq[GLfloat](numVertices*3)
   model.indices = newSeq[GLushort](numIndices)
   model.materials = newSeq[Material](scene.materialCount)
 

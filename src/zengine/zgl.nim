@@ -80,6 +80,8 @@ type
     materials*: seq[Material]
     indices*: seq[GLushort]
     texCoords*: seq[GLfloat]
+    normals*: seq[GLfloat]
+    colors: seq[cuchar]
 
   MeshEntry* = object
       materialIndex*: int
@@ -934,8 +936,31 @@ proc zglLoadModel*(model: var Model, dynamic: bool) =
   glVertexAttribPointer(1, 2, cGL_FLOAT, GL_FALSE, 0, nil)
   glEnableVertexAttribArray(1)
 
-  glVertexAttrib3f(2, 1.0, 1.0, 1.0)
-  glDisableVertexAttribArray(2)
+  if model.normals != nil:
+    glGenBuffers(1, addr vboId[2])
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[2])
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*model.vertexCount, addr model.normals[0], GL_STATIC_DRAW)
+    glVertexAttribPointer(2, 3, cGL_FLOAT, GL_FALSE, 0, nil)
+    glEnableVertexAttribArray(2)
+  else:
+    glVertexAttrib3f(2, 1.0, 1.0, 1.0)
+    glDisableVertexAttribArray(2)
+
+  if model.colors != nil:
+    glGenBuffers(1, addr vboId[3])
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[3])
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*model.vertexCount, addr model.colors[0], GL_STATIC_DRAW)
+    glVertexAttribPointer(3, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil)
+    glEnableVertexAttribArray(3)
+  else:
+    glVertexAttrib4f(3, 1.0, 1.0, 1.0, 1.0)
+    glDisableVertexAttribArray(3)
+
+  glVertexAttrib3f(4, 0.0f, 0.0f, 0.0f)
+  glDisableVertexAttribArray(4)
+  
+  glVertexAttrib2f(5, 0.0f, 0.0f)
+  glDisableVertexAttribArray(5)
 
   if model.indices != nil:
     glGenBuffers(1, addr vboId[6])
@@ -966,20 +991,58 @@ proc zglDrawModel*(model: Model) =
   let matMVP = matrixMultiply(modelview, projection)
   var matMVPFloatArray = matrixToFloat(matMVP)
 
-  glActiveTexture(GL_TEXTURE0)
-
   for meshEntry in model.meshEntries:
     let material = model.materials[meshEntry.materialIndex]
     let materialShader = material.shader
 
     glUseProgram(materialShader.id)
 
+    glUniform4f(material.shader.colDiffuseLoc, float material.colDiffuse.r/255, float material.colDiffuse.g/255, float material.colDiffuse.b/255, float material.colDiffuse.a/255)
+
+    if material.shader.colAmbientLoc != -1:
+      glUniform4f(material.shader.colAmbientLoc, float material.colAmbient.r/255, float material.colAmbient.g/255, float material.colAmbient.b/255, float material.colAmbient.a/255)
+    
+    if material.shader.colSpecularLoc != -1:
+      glUniform4f(material.shader.colSpecularLoc, float material.colSpecular.r/255, float material.colSpecular.g/255, float material.colSpecular.b/255, float material.colSpecular.a/255)
+
+    if material.shader.id != defaultShader.id:
+      let modelMatrixLoc = glGetUniformLocation(material.shader.id, "modelMatrix")
+
+      if modelMatrixLoc != -1:
+        var transInvTransform  = transform
+        matrixTranspose(transInvTransform)
+        matrixInvert(transInvTransform)
+
+        var transInvTransformFloatArray = matrixToFloat(transInvTransform)
+        glUniformMatrix4fv(modelMatrixLoc, 1, false, addr transInvTransformFloatArray[0])
+
+      let viewDirLoc = glGetUniformLocation(material.shader.id, "viewDir")
+      if viewDirLoc != -1:
+        glUniform3f(viewDirLoc, matView.m8, matView.m9, matView.m10)
+      
+      let glossinessLoc = glGetUniformLocation(material.shader.id, "glossiness")
+      if glossinessLoc != -1:
+        glUniform1f(glossinessLoc, material.glossiness)
+
     glUniformMatrix4fv(materialShader.mvpLoc, 1, false, addr matMVPFloatArray[0])
 
-      
+    glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, material.texDiffuse.id)
     glUniform1i(materialShader.mapTexture0Loc, 0)
 
+    if material.texNormal.id != 0 and material.shader.mapTexture1Loc != -1:
+      glUniform1i(glGetUniformLocation(material.shader.id, "useNormal"), 1)
+
+      glActiveTexture(GL_TEXTURE1)
+      glBindTexture(GL_TEXTURE_2D, material.texNormal.id)
+      glUniform1i(material.shader.mapTexture1Loc, 1)
+
+    if material.texSpecular.id != 0 and material.shader.mapTexture2Loc != -1:
+      glUniform1i(glGetUniformLocation(material.shader.id, "useSpecular"), 1)
+    
+      glActiveTexture(GL_TEXTURE2)
+      glBindTexture(GL_TEXTURE_2D, material.texSpecular.id)
+      glUniform1i(material.shader.mapTexture2Loc, 2)
 
     if model.indices != nil:
       assert model.triangleCount * 3 == model.indices.len
@@ -995,77 +1058,6 @@ proc zglDrawModel*(model: Model) =
 
   projection = matProjection
   modelview = matView
-
-
-# proc zglLoadMesh*(mesh: var Mesh, dynamic: bool) =
-#   mesh.vaoId = 0
-#   mesh.vboId[0] = 0
-#   mesh.vboId[1] = 0
-#   mesh.vboId[2] = 0
-#   mesh.vboId[3] = 0
-#   mesh.vboId[4] = 0
-#   mesh.vboId[5] = 0
-#   mesh.vboId[6] = 0
-
-#   var vaoId: GLuint = 0
-#   var vboId: array[7, GLuint]
-
-#   glGenVertexArrays(1, addr vaoId)
-#   glBindVertexArray(vaoId)
-
-#   glGenBuffers(1, addr vboId[0])
-#   glBindBuffer(GL_ARRAY_BUFFER, vboId[0])
-#   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.vertices[0], GL_STATIC_DRAW)
-#   glVertexAttribPointer(0, 3, cGL_FLOAT, GL_FALSE, 0, nil)
-#   glEnableVertexAttribArray(0)
-
-#   glGenBuffers(1, addr vboId[1])
-#   glBindBuffer(GL_ARRAY_BUFFER, vboId[1])
-#   glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*2*mesh.vertexCount, addr mesh.texcoords[0], GL_STATIC_DRAW);
-#   glVertexAttribPointer(1, 2, cGL_FLOAT, GL_FALSE, 0, nil)
-#   glEnableVertexAttribArray(1)
-
-#   if mesh.normals != nil:
-#     glGenBuffers(1, addr vboId[2])
-#     glBindBuffer(GL_ARRAY_BUFFER, vboId[2])
-#     glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertexCount, addr mesh.normals[0], GL_STATIC_DRAW)
-#     glVertexAttribPointer(2, 3, cGL_FLOAT, GL_FALSE, 0, nil)
-#     glEnableVertexAttribArray(2)
-#   else:
-#     glVertexAttrib3f(2, 1.0, 1.0, 1.0)
-#     glDisableVertexAttribArray(2)
-
-#   if mesh.colors != nil:
-#    glGenBuffers(1, addr vboId[3])
-#    glBindBuffer(GL_ARRAY_BUFFER, vboId[3])
-#    glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*mesh.vertexCount, addr mesh.colors[0], GL_STATIC_DRAW)
-#    glVertexAttribPointer(3, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil)
-#    glEnableVertexAttribArray(3)
-#   else:
-#     glVertexAttrib4f(3, 1.0, 1.0, 1.0, 1.0)
-#     glDisableVertexAttribArray(3)
-
-#   glVertexAttrib3f(4, 0.0f, 0.0f, 0.0f)
-#   glDisableVertexAttribArray(4)
-  
-#   glVertexAttrib2f(5, 0.0f, 0.0f)
-#   glDisableVertexAttribArray(5)
-
-#   if mesh.indices != nil:
-#     glGenBuffers(1, addr vboId[6])
-#     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[6])
-#     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*mesh.triangleCount*3, addr mesh.indices[0], GL_STATIC_DRAW)
-
-#   mesh.vboId[0] = vboId[0]
-#   mesh.vboId[1] = vboId[1]
-#   mesh.vboId[2] = vboId[2]
-#   mesh.vboId[3] = vboId[1]
-#   mesh.vboId[4] = vboId[2]
-#   mesh.vboId[5] = vboId[1]
-#   mesh.vboId[6] = vboId[6]
-  
-  
-#   mesh.vaoId = vaoId
 
 # proc zglDrawMesh*(mesh: Mesh, material: Material) =
 #   glUseProgram(material.shader.id)
