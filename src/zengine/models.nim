@@ -319,11 +319,11 @@ proc initMesh(model: var Model, index: int, mesh: PMesh) =
     inc(model.vertexCount)
     inc(vCounter, 3)
 
-  # var tcCounter = 0
-  # for tc in 0..<mesh.vertexCount:
-  #   model.texCoords[tcCounter] = mesh.texCoords[0].offset(tc)[].x
-  #   model.texCoords[tcCounter + 1] = mesh.texCoords[0].offset(tc)[].y
-  #   inc(tcCounter, 2)
+  var tcCounter = 0
+  for tc in 0..<mesh.vertexCount:
+    model.texCoords[tcCounter] = mesh.texCoords[0].offset(tc)[].x
+    model.texCoords[tcCounter + 1] = mesh.texCoords[0].offset(tc)[].y
+    inc(tcCounter, 2)
 
   # if mesh.hasNormals():
   #   var nCounter = 0
@@ -359,7 +359,7 @@ proc init(model: var Model, scene: PScene, filename: string, shader: Shader) =
     numIndices += model.meshEntries[m].indexCount
 
   model.vertices = newSeq[GLfloat](numVertices*3)
-  #model.texCoords = newSeq[GLfloat](numVertices*2)
+  model.texCoords = newSeq[GLfloat](numVertices*2)
   # model.normals = newSeq[GLfloat](numVertices*3)
   model.indices = newSeq[GLushort](numIndices)
   model.materials = newSeq[Material](scene.materialCount)

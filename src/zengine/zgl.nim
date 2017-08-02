@@ -79,6 +79,7 @@ type
     vertexCount*, triangleCount*: int
     materials*: seq[Material]
     indices*: seq[GLushort]
+    texCoords*: seq[GLfloat]
 
   MeshEntry* = object
       materialIndex*: int
@@ -927,6 +928,15 @@ proc zglLoadModel*(model: var Model, dynamic: bool) =
   glVertexAttribPointer(0, 3, cGL_FLOAT, GL_FALSE, 0, nil)
   glEnableVertexAttribArray(0)
 
+  glGenBuffers(1, addr vboId[1])
+  glBindBuffer(GL_ARRAY_BUFFER, vboId[1])
+  glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*2*model.vertexCount, addr model.texcoords[0], drawHint);
+  glVertexAttribPointer(1, 2, cGL_FLOAT, GL_FALSE, 0, nil)
+  glEnableVertexAttribArray(1)
+
+  glVertexAttrib3f(2, 1.0, 1.0, 1.0)
+  glDisableVertexAttribArray(2)
+
   if model.indices != nil:
     glGenBuffers(1, addr vboId[6])
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[6])
@@ -956,20 +966,28 @@ proc zglDrawModel*(model: Model) =
   let matMVP = matrixMultiply(modelview, projection)
   var matMVPFloatArray = matrixToFloat(matMVP)
 
+  glActiveTexture(GL_TEXTURE0)
+
   for meshEntry in model.meshEntries:
-    let materialShader = model.materials[meshEntry.materialIndex].shader
+    let material = model.materials[meshEntry.materialIndex]
+    let materialShader = material.shader
 
     glUseProgram(materialShader.id)
 
     glUniformMatrix4fv(materialShader.mvpLoc, 1, false, addr matMVPFloatArray[0])
 
+      
+    glBindTexture(GL_TEXTURE_2D, material.texDiffuse.id)
+    glUniform1i(materialShader.mapTexture0Loc, 0)
+
 
     if model.indices != nil:
       assert model.triangleCount * 3 == model.indices.len
       glDrawElements(GL_TRIANGLES, model.triangleCount*3, GL_UNSIGNED_SHORT, nil)
-    else:
-      glDrawArrays(GL_TRIANGLES, 0, model.vertexCount)
 
+
+  glActiveTexture(GL_TEXTURE0)
+  glBindTexture(GL_TEXTURE_2D, 0)
 
   glBindVertexArray(0)
 
