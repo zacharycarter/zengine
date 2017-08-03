@@ -1,10 +1,5 @@
 import logging, zgl, zmath, sdl2, os, strutils, assimp, opengl, texture, color
 
-# type
-#   Model = object
-#     meshes: seq[Mesh]
-#     materials: seq[Material]
-
 const ASSIMP_LOAD_FLAGS = aiProcess_Triangulate or aiProcess_GenSmoothNormals or aiProcess_FlipUVs or aiProcess_JoinIdenticalVertices
 
 proc offset*[A](some: ptr A; b: int): ptr A =
@@ -239,43 +234,34 @@ proc drawModel*(model: var Model, tint: ZColor) =
   zglDrawModel(model)
 
 proc initMesh(model: var Model, index: int, mesh: PMesh) =
-  var vCounter = 0
   for v in 0..<mesh.vertexCount:
-    model.vertices[vCounter] = mesh.vertices.offset(v)[].x
-    model.vertices[vCounter + 1] = mesh.vertices.offset(v)[].y
-    model.vertices[vCounter + 2] = mesh.vertices.offset(v)[].z
+    model.vertices.add(mesh.vertices.offset(v)[].x)
+    model.vertices.add(mesh.vertices.offset(v)[].y)
+    model.vertices.add(mesh.vertices.offset(v)[].z)
     inc(model.vertexCount)
-    inc(vCounter, 3)
 
-  var tcCounter = 0
   for tc in 0..<mesh.vertexCount:
-    model.texCoords[tcCounter] = mesh.texCoords[0].offset(tc)[].x
-    model.texCoords[tcCounter + 1] = mesh.texCoords[0].offset(tc)[].y
-    inc(tcCounter, 2)
+    model.texCoords.add(mesh.texCoords[0].offset(tc)[].x)
+    model.texCoords.add(mesh.texCoords[0].offset(tc)[].y)
 
   if mesh.hasNormals():
-    var nCounter = 0
     for n in 0..<mesh.vertexCount:
-      model.normals[nCounter] = mesh.normals.offset(n).x
-      model.normals[nCounter + 1] = mesh.normals.offset(n).y
-      model.normals[nCounter + 2] = mesh.normals.offset(n).z
-      inc(nCounter, 3)
+      model.normals.add(mesh.normals.offset(n).x)
+      model.normals.add(mesh.normals.offset(n).y)
+      model.normals.add(mesh.normals.offset(n).z)
 
-  if mesh.hasFaces():
-    var fCounter = 0
     for f in 0..<mesh.faceCount:
-      model.indices[fCounter] = GLushort mesh.faces[f].indices[0]
-      model.indices[fCounter + 1] = GLushort mesh.faces[f].indices[1]
-      model.indices[fCounter + 2] = GLushort mesh.faces[f].indices[2]
+      model.indices.add(GLushort mesh.faces[f].indices[0])
+      model.indices.add(GLushort mesh.faces[f].indices[1])
+      model.indices.add(GLushort mesh.faces[f].indices[2])
       inc(model.triangleCount)
-      inc(fCounter, 3)
 
 proc init(model: var Model, scene: PScene, filename: string, shader: Shader) =
   model.meshEntries = newSeq[MeshEntry](scene.meshCount)
 
   var 
-    numVertices = 0
-    numIndices = 0
+    numVertices: GLint = 0
+    numIndices: GLint = 0
   
   for m in 0..<scene.meshCount:
     model.meshEntries[m].materialIndex = scene.meshes[m].materialIndex
@@ -286,10 +272,10 @@ proc init(model: var Model, scene: PScene, filename: string, shader: Shader) =
     numVertices += scene.meshes[m].vertexCount
     numIndices += model.meshEntries[m].indexCount
 
-  model.vertices = newSeq[GLfloat](numVertices*3)
-  model.texCoords = newSeq[GLfloat](numVertices*2)
-  model.normals = newSeq[GLfloat](numVertices*3)
-  model.indices = newSeq[GLushort](numIndices)
+  model.vertices = @[]
+  model.texCoords = @[]
+  model.normals = @[]
+  model.indices = @[]
   model.materials = newSeq[Material](scene.materialCount)
 
   for m in 0..<scene.meshCount:
@@ -312,4 +298,3 @@ proc loadModel*(filename: string, shader: Shader = getDefaultShader()): Model =
     return
 
   result.init(scene, filename, shader)
-

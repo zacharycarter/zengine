@@ -76,7 +76,7 @@ type
     vaoId: GLuint
     vboId: array[7, GLuint]
     vertices*: seq[GLfloat]
-    vertexCount*, triangleCount*: int
+    vertexCount*, triangleCount*: GLint
     materials*: seq[Material]
     indices*: seq[GLushort]
     texCoords*: seq[GLfloat]
@@ -84,9 +84,9 @@ type
     colors: seq[cuchar]
 
   MeshEntry* = object
-      materialIndex*: int
-      baseVertex*, baseIndex*: int
-      indexCount*: int
+    materialIndex*: int
+    baseVertex*, baseIndex*: GLint
+    indexCount*: GLint
       
   # Mesh* = object
   #   vertexCount*: int
@@ -1045,8 +1045,7 @@ proc zglDrawModel*(model: Model) =
       glUniform1i(material.shader.mapTexture2Loc, 2)
 
     if model.indices != nil:
-      assert model.triangleCount * 3 == model.indices.len
-      glDrawElements(GL_TRIANGLES, model.triangleCount*3, GL_UNSIGNED_SHORT, nil)
+      glDrawElementsBaseVertex(GL_TRIANGLES, meshEntry.indexCount, GL_UNSIGNED_SHORT, cast[pointer](sizeof(GLushort) * int meshEntry.baseIndex), meshEntry.baseVertex)
 
 
   glActiveTexture(GL_TEXTURE0)
