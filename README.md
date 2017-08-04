@@ -1,7 +1,7 @@
 # zengine
 2D | 3D Game development library
 
-Current status - 
+Progress - 
 ![Skeletal Animation](http://i.imgur.com/Ev4YjcZ.gif)
 ![Lit Model](http://i.imgur.com/YIQutvx.png)
 ![Model Loading](http://i.imgur.com/fKbrXPi.png)
