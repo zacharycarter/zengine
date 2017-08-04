@@ -15,9 +15,154 @@ Dependencies:
 ```nim
 import zengine, sdl2, opengl
 
+type
+  LightKind = enum
+    Point, Directional, Spot
+  
+  Light = ref object
+    id: int
+    enabled: bool
+    kind: LightKind
+    position: Vector3
+    target: Vector3
+    radius: float
+    diffuse: ZColor
+    intensity: float
+    coneAngle: float
+
 const 
   WIDTH = 960
   HEIGHT = 540
+  MAX_LIGHTS = 8
+
+var lights: array[MAX_LIGHTS, Light]
+var lightsCount = 0
+var lightsLocs: array[MAX_LIGHTS, array[8, int]]
+
+proc createLight(kind: LightKind, position: Vector3, diffuse: ZColor): Light =
+  result = nil
+
+  if lightsCount < MAX_LIGHTS:
+    result = Light(
+      id: lightsCount,
+      kind: kind,
+      enabled: true,
+      position: position,
+      target: vectorZero(),
+      intensity: 1.0,
+      diffuse: diffuse
+    )
+
+    lights[lightsCount] = result
+
+    inc(lightsCount)
+  else:
+    result = lights[lightsCount]
+
+proc setShaderLightsValues(shader: Shader) =
+  var tempInt: array[8, GLint]
+  var tempFloat: array[8, GLfloat]
+
+  for i in 0..<MAX_LIGHTS:
+    if i < lightsCount:
+      tempInt[0] = lights[i].enabled.GLint
+      setShaderValuei(shader, lightsLocs[i][0].GLint, tempInt, 1)
+      
+      tempInt[0] = lights[i].kind.GLint
+      setShaderValuei(shader, lightsLocs[i][1].GLint, tempInt, 1)
+
+      tempFloat[0] = lights[i].diffuse.r.float/255.0
+      tempFloat[1] = lights[i].diffuse.g.float/255.0
+      tempFloat[2] = lights[i].diffuse.b.float/255.0
+      tempFloat[3] = lights[i].diffuse.a.float/255.0
+      setShaderValue(shader, lightsLocs[i][5].GLint, tempFloat, 4)
+
+      tempFloat[0] = lights[i].intensity
+      setShaderValue(shader, lightsLocs[i][6].GLint, tempFloat, 1)
+
+      case lights[i].kind:
+        of LightKind.Point:
+          tempFloat[0] = lights[i].position.x
+          tempFloat[1] = lights[i].position.y
+          tempFloat[2] = lights[i].position.z
+          setShaderValue(shader, lightsLocs[i][2].GLint, tempFloat, 3)
+
+          tempFloat[0] = lights[i].radius
+          setShaderValue(shader, lightsLocs[i][4].GLint, tempFloat, 1)
+        of LightKind.Directional:
+          var direction = vectorSubtract(lights[i].target, lights[i].position)
+          vectorNormalize(direction)
+
+          tempFloat[0] = direction.x
+          tempFloat[1] = direction.y
+          tempFloat[2] = direction.z
+          setShaderValue(shader, lightsLocs[i][3].GLint, tempFloat, 3)
+        of LightKind.Spot:
+          tempFloat[0] = lights[i].position.x
+          tempFloat[1] = lights[i].position.y
+          tempFloat[2] = lights[i].position.z
+          setShaderValue(shader, lightsLocs[i][2].GLint, tempFloat, 3)
+
+          var direction = vectorSubtract(lights[i].target, lights[i].position)
+          vectorNormalize(direction)
+
+          tempFloat[0] = direction.x
+          tempFloat[1] = direction.y
+          tempFloat[2] = direction.z
+          setShaderValue(shader, lightsLocs[i][3].GLint, tempFloat, 3)
+
+          tempFloat[0] = lights[i].coneAngle
+          setShaderValue(shader, lightsLocs[i][7].GLint, tempFloat, 1)
+    else:
+      tempInt[0] = 0
+      setShaderValuei(shader, lightsLocs[i][0].GLint, tempInt, 1)
+
+
+proc getShaderLightsLocation(shader: Shader) =
+  var locName = "lights[x]."
+  var locNameUpdated = newStringOfCap(64)
+
+  for i in 0..<MAX_LIGHTS:
+    locName[7] = ('0'.int + i).char
+
+    locNameUpdated = locName
+    locNameUpdated &= "enabled"
+    lightsLocs[i][0] = getShaderLocation(shader, locNameUpdated)
+
+    locNameUpdated[0] = ' '
+    locNameUpdated = locName
+    locNameUpdated &= "type"
+    lightsLocs[i][1] = getShaderLocation(shader, locNameUpdated)
+
+    locNameUpdated[0] = ' '
+    locNameUpdated = locName
+    locNameUpdated &= "position"
+    lightsLocs[i][2] = getShaderLocation(shader, locNameUpdated)
+
+    locNameUpdated[0] = ' '
+    locNameUpdated = locName
+    locNameUpdated &= "direction"
+    lightsLocs[i][3] = getShaderLocation(shader, locNameUpdated)
+
+    locNameUpdated[0] = ' '
+    locNameUpdated = locName
+    locNameUpdated &= "radius"
+    lightsLocs[i][4] = getShaderLocation(shader, locNameUpdated)
+
+    locNameUpdated[0] = ' '
+    locNameUpdated = locName
+    locNameUpdated &= "diffuse"
+    lightsLocs[i][5] = getShaderLocation(shader, locNameUpdated)
+
+    locNameUpdated[0] = ' '
+    locNameUpdated = locName
+    locNameUpdated &= "intensity"
+    lightsLocs[i][6] = getShaderLocation(shader, locNameUpdated)
+
+    locNameUpdated[0] = ' '
+    locNameUpdated = locName
+    locNameUpdated &= "coneAngle"
+    lightsLocs[i][7] = getShaderLocation(shader, locNameUpdated)
 
 zengine.init(WIDTH, HEIGHT, "zengine example: 00_Initialization")
 
@@ -34,10 +179,32 @@ var
   mouseXRel = 0
   mouseYRel = 0
 
-#camera.setMode(CameraMode.Free)
-camera.setMode(CameraMode.FirstPerson)
+camera.setMode(CameraMode.Free)
+#camera.setMode(CameraMode.FirstPerson)
 
-var model = loadModel("examples/data/cyborg/cyborg.obj")
+let shader = loadShader("examples/data/shaders/glsl400/forward.vs", "examples/data/shaders/glsl400/forward.fs")
+
+var model = loadModel("examples/data/models/mannequin/walking.dae", shader)
+
+getShaderLightsLocation(shader)
+
+var spotLight = createLight(LightKind.Spot, Vector3(x:0.0, y:5.0, z:0.0), ZColor(r:255, g:255, b:255, a:255))
+spotLight.target = Vector3(x: 0.0, y: 0.0, z: 0.0)
+spotLight.intensity = 2.0
+spotlight.diffuse = ZColor(r: 0, g: 0, b: 255, a: 255)
+spotLight.coneAngle = 60.0
+
+var dirLight = createLight(LightKind.Directional, Vector3(x:0.0, y: -3.0, z: -3.0), ZColor(r:0, g:0, b:255, a:255))
+dirLight.target = Vector3(x: 1.0, y: -2.0, z: -2.0)
+dirLight.intensity = 2.0
+dirLight.diffuse = ZColor(r: 100, g:255, b:100, a:255)
+
+var pointLight = createLight(LightKind.Point, Vector3(x:0.0, y: 4.0, z: 5.0), ZColor(r:255, g:255, b:255, a:255))
+pointLight.intensity = 2.0
+pointLight.diffuse = ZColor(r: 100, g:100, b:255, a:255)
+pointLight.radius = 3.0
+
+setShaderLightsValues(shader)
 
 while running:
   mouseWheelMovement = 0
@@ -77,4 +244,5 @@ while running:
   endDrawing()
 
 zengine.shutdown()
+
 ```
