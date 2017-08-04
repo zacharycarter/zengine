@@ -1,4 +1,4 @@
-import logging, math, opengl, sdl2, strutils, util, zmath, os
+import logging, math, opengl, sdl2, strutils, util, zmath, os, tables, assimp, glm
 
 const 
   MATRIX_STACK_SIZE = 16
@@ -14,7 +14,7 @@ const
 
 type
   Shader* = object
-    id: GLuint
+    id*: GLuint
     vertexLoc: GLint
     texCoordLoc: GLint
     normalLoc: GLint
@@ -74,7 +74,7 @@ type
   Model* = object
     meshEntries*: seq[MeshEntry]
     vaoId: GLuint
-    vboId: array[7, GLuint]
+    vboId: array[8, GLuint]
     vertices*: seq[GLfloat]
     vertexCount*, triangleCount*: GLint
     materials*: seq[Material]
@@ -82,11 +82,25 @@ type
     texCoords*: seq[GLfloat]
     normals*: seq[GLfloat]
     colors: seq[cuchar]
+    bones*: seq[Bone]
+    boneInfos*: seq[BoneInfo]
+    boneMapping*: Table[string, int]
+    numBones*: uint
+    globalInverseTransform*: Mat4f
+    scene*: PScene
 
   MeshEntry* = object
     materialIndex*: int
     baseVertex*, baseIndex*: GLint
     indexCount*: GLint
+
+  Bone* = object
+    ids*: array[4, GLint]
+    weights*: array[4, GLfloat]
+
+  BoneInfo* = object
+    boneOffset*: Mat4f
+    finalTransformation*: Mat4f
       
   # Mesh* = object
   #   vertexCount*: int
@@ -915,9 +929,10 @@ proc zglLoadModel*(model: var Model, dynamic: bool) =
   model.vboId[4] = 0
   model.vboId[5] = 0
   model.vboId[6] = 0
+  model.vboId[7] = 0
 
   var vaoId: GLuint = 0
-  var vboId: array[7, GLuint]
+  var vboId: array[8, GLuint]
 
   glGenVertexArrays(1, addr vaoId)
   glBindVertexArray(vaoId)
@@ -939,7 +954,7 @@ proc zglLoadModel*(model: var Model, dynamic: bool) =
   if model.normals != nil:
     glGenBuffers(1, addr vboId[2])
     glBindBuffer(GL_ARRAY_BUFFER, vboId[2])
-    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*model.vertexCount, addr model.normals[0], GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*model.vertexCount, addr model.normals[0], drawHint)
     glVertexAttribPointer(2, 3, cGL_FLOAT, GL_FALSE, 0, nil)
     glEnableVertexAttribArray(2)
   else:
@@ -949,7 +964,7 @@ proc zglLoadModel*(model: var Model, dynamic: bool) =
   if model.colors != nil:
     glGenBuffers(1, addr vboId[3])
     glBindBuffer(GL_ARRAY_BUFFER, vboId[3])
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*model.vertexCount, addr model.colors[0], GL_STATIC_DRAW)
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*model.vertexCount, addr model.colors[0], drawHint)
     glVertexAttribPointer(3, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil)
     glEnableVertexAttribArray(3)
   else:
@@ -962,23 +977,34 @@ proc zglLoadModel*(model: var Model, dynamic: bool) =
   glVertexAttrib2f(5, 0.0f, 0.0f)
   glDisableVertexAttribArray(5)
 
-  if model.indices != nil:
+  if model.bones != nil:
     glGenBuffers(1, addr vboId[6])
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[6])
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[6])
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Bone) * model.bones.len, addr model.bones[0], drawHint);
+    glEnableVertexAttribArray(6)
+    glVertexAttribIPointer(6, 4, cGL_INT, GLsizei sizeof(Bone), nil)
+    glEnableVertexAttribArray(7)  
+    glVertexAttribPointer(7, 4, cGL_FLOAT, GL_FALSE, GLSizei sizeof(Bone), cast[pointer](sizeof(array[4, GLint])));
+
+  if model.indices != nil:
+    glGenBuffers(1, addr vboId[7])
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboId[7])
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*model.triangleCount*3, addr model.indices[0], drawHint)
 
   model.vboId[0] = vboId[0]
   model.vboId[1] = vboId[1]
   model.vboId[2] = vboId[2]
-  model.vboId[3] = vboId[1]
-  model.vboId[4] = vboId[2]
-  model.vboId[5] = vboId[1]
+  model.vboId[3] = vboId[3]
+  model.vboId[4] = vboId[4]
+  model.vboId[5] = vboId[5]
   model.vboId[6] = vboId[6]
+  model.vboId[7] = vboId[7]
+  
   
   
   model.vaoId = vaoId
 
-proc zglDrawModel*(model: Model) =
+proc zglDrawModel*(model: Model, transforms: var seq[Mat4f]) =
   let matView = modelView
   let matProjection = projection
 
@@ -996,6 +1022,9 @@ proc zglDrawModel*(model: Model) =
     let materialShader = material.shader
 
     glUseProgram(materialShader.id)
+
+    for i in 0..<transforms.len:
+      glUniformMatrix4fv(GLint(glGetUniformLocation(materialShader.id, "gBones[" & $i & "]")), 1, true, transforms[i].caddr)
 
     glUniform4f(material.shader.colDiffuseLoc, float material.colDiffuse.r/255, float material.colDiffuse.g/255, float material.colDiffuse.b/255, float material.colDiffuse.a/255)
 

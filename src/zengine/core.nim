@@ -1,4 +1,4 @@
-import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, glm, zmath
+import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, zmath, math
 
 
 var 

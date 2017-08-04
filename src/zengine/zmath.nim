@@ -1,4 +1,4 @@
-import math
+import math, assimp
 
 type
   Vector2* = object
@@ -148,6 +148,23 @@ proc vectorMax*(v1, v2: Vector3): Vector3 =
   result.y = max(v1.y, v2.y)
   result.z = max(v1.z, v2.z)
 
+converter toMatrix*(tMatrix4x4: TMatrix4x4): Matrix =
+  result.m0 = tMatrix4x4[0]
+  result.m1 = tMatrix4x4[1]
+  result.m2 = tMatrix4x4[2]
+  result.m3 = tMatrix4x4[3]
+  result.m4 = tMatrix4x4[4]
+  result.m5 = tMatrix4x4[5]
+  result.m6 = tMatrix4x4[6]
+  result.m7 = tMatrix4x4[7]
+  result.m8 = tMatrix4x4[8]
+  result.m9 = tMatrix4x4[9]
+  result.m10 = tMatrix4x4[10]
+  result.m11 = tMatrix4x4[11]
+  result.m12 = tMatrix4x4[12]
+  result.m13 = tMatrix4x4[13]
+  result.m14 = tMatrix4x4[14]
+  result.m15 = tMatrix4x4[15]
 
 proc matrixIdentity*(): Matrix =
   result = Matrix(m0: 1.0, m1:0.0, m2:0.0, m3:0.0, 
@@ -405,3 +422,15 @@ proc matrixInvert*(mat: var Matrix) =
   mat.m14 = (-a30*b03 + a31*b01 - a32*b00)*invDet
   mat.m15 = (a20*b03 - a21*b01 + a22*b00)*invDet
 
+proc `*`*(v: Vector3, s: float32): Vector3 =
+  result.x = v.x * s
+  result.y = v.y * s
+  result.z = v.z * s
+
+proc `+`*(v1, v2: Vector3): Vector3 =
+  result.x = (v1.x + v2.x)
+  result.y = (v1.y + v2.y)
+  result.z = (v1.z + v2.z)
+
+proc mix*(v1,v2: Vector3; a: float32): Vector3 =
+  v1 * (1 - a) + v2 * a
