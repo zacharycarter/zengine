@@ -2,7 +2,7 @@
 2D | 3D Game development library
 
 Progress - 
-![Skeletal Animation](http://i.imgur.com/Ev4YjcZ.gif)
+![3D Skeletal Animation](http://i.imgur.com/wASlgNb.gif)
 ![Lit Model](http://i.imgur.com/YIQutvx.png)
 ![Model Loading](http://i.imgur.com/fKbrXPi.png)
 ![FPS Camera](https://media.giphy.com/media/xUA7aSrJzGLbB0x5hS/giphy.gif)
