@@ -3,7 +3,7 @@
 
 Progress - 
 
-![3D Skeletal Animation](https://media.giphy.com/media/xUA7aSrJzGLbB0x5hS/giphy.gif)
+![3D Skeletal Animation](https://media.giphy.com/media/l1J3tQly5PfRKtMUo/giphy.gif)
 ![Lit Model](http://i.imgur.com/YIQutvx.png)
 ![Model Loading](http://i.imgur.com/fKbrXPi.png)
 ![FPS Camera](https://media.giphy.com/media/xUA7aSrJzGLbB0x5hS/giphy.gif)
