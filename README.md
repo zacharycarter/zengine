@@ -1,6 +1,8 @@
 # zengine
 2D | 3D Game development library
 
+NOTE - Please run examples from root directory for now
+
 Progress - 
 
 ![3D Skeletal Animation](https://media.giphy.com/media/l1J3tQly5PfRKtMUo/giphy.gif)
