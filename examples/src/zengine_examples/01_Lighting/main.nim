@@ -44,6 +44,16 @@ proc createLight(kind: LightKind, position: Vector3, diffuse: ZColor): Light =
   else:
     result = lights[lightsCount]
 
+proc drawLight(light: Light) =
+  case light.kind
+  of LightKind.Point:
+    drawSphereWires(light.position, 0.3 * light.intensity, 8, 8, if light.enabled: light.diffuse else: GRAY)
+    drawCircle3d(light.position, light.radius, vectorZero(), 0.0, if light.enabled: light.diffuse else: GRAY)
+    drawCircle3d(light.position, light.radius, Vector3(x: 1.0, y: 0.0, z: 0.0), 90.0, if light.enabled: light.diffuse else: GRAY)
+    drawCircle3d(light.position, light.radius, Vector3(x: 0.0, y: 1.0, z: 0.0), 90.0, if light.enabled: light.diffuse else: GRAY)
+  else:
+    discard
+
 proc setShaderLightsValues(shader: Shader) =
   var tempInt: array[8, GLint]
   var tempFloat: array[8, GLfloat]
@@ -167,11 +177,9 @@ var
 camera.setMode(CameraMode.Free)
 #camera.setMode(CameraMode.FirstPerson)
 
-let shader = loadShader("examples/data/shaders/glsl400/forward.vs", "examples/data/shaders/glsl400/forward.fs")
+let shader = loadShader("examples/data/shaders/glsl400/lighting/forward.vs", "examples/data/shaders/glsl400/lighting/forward.fs")
 
 var model = loadModel("examples/data/models/cyborg/cyborg.obj", shader)
-
-# var model = loadModel("examples/data/models/cyborg/cyborg.obj")
 
 getShaderLightsLocation(shader)
 
@@ -186,7 +194,7 @@ dirLight.target = Vector3(x: 1.0, y: -2.0, z: -2.0)
 dirLight.intensity = 2.0
 dirLight.diffuse = ZColor(r: 100, g:255, b:100, a:255)
 
-var pointLight = createLight(LightKind.Point, Vector3(x:0.0, y: 4.0, z: 5.0), ZColor(r:255, g:255, b:255, a:255))
+var pointLight = createLight(LightKind.Point, Vector3(x:0.0, y: 4.0, z: 3.0), ZColor(r:255, g:255, b:255, a:255))
 pointLight.intensity = 2.0
 pointLight.diffuse = ZColor(r: 100, g:100, b:255, a:255)
 pointLight.radius = 3.0
@@ -224,10 +232,15 @@ while running:
   drawCube(Vector3(x: 16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(Vector3(x: 0.0, y: 2.5, z: 16.0), 32.0, 5.0, 1.0, WHITE)
   drawModel(model, WHITE)
+
+  drawLight(pointLight)
+  
   end3dMode()
 
   drawText("Hello zengine!", 5, 5, 30, ZColor(r: 255, g: 255, b: 255, a: 255))
 
   endDrawing()
 
-zengine.shutdown()
+  swapBuffers()
+
+zengine.core.shutdown()

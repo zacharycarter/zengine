@@ -102,6 +102,12 @@ proc setShaderLightsValues(shader: Shader) =
       tempInt[0] = 0
       setShaderValuei(shader, lightsLocs[i][0].GLint, tempInt, 1)
 
+proc drawLight(light: Light) =
+  case light.kind
+  of LightKind.Point:
+    drawSphereWires(light.position, 0.3 * light.intensity, 8, 8, if light.enabled: light.diffuse else: GRAY)
+  else:
+    discard
 
 proc getShaderLightsLocation(shader: Shader) =
   var locName = "lights[x]."
@@ -150,6 +156,7 @@ proc getShaderLightsLocation(shader: Shader) =
     lightsLocs[i][7] = getShaderLocation(shader, locNameUpdated)
 
 zengine.init(WIDTH, HEIGHT, "zengine example: 00_Initialization")
+zengine.gui.init()
 
 var 
   evt = sdl2.defaultEvent
@@ -164,12 +171,12 @@ var
   mouseXRel = 0
   mouseYRel = 0
 
-camera.setMode(CameraMode.Free)
-#camera.setMode(CameraMode.FirstPerson)
+# camera.setMode(CameraMode.Free)
+camera.setMode(CameraMode.FirstPerson)
 
-let shader = loadShader("examples/data/shaders/glsl400/forward.vs", "examples/data/shaders/glsl400/forward.fs")
+let shader = loadShader("examples/data/shaders/glsl400/animation/forward.vs", "examples/data/shaders/glsl400/animation/forward.fs")
 
-var model = loadModel("examples/data/models/mannequin/walking.dae", shader)
+var model = loadModel("examples/data/models/mutant/mutant_idle.dae", shader)
 
 # var model = loadModel("examples/data/models/nanosuit/nanosuit.obj", shader)
 
@@ -183,15 +190,15 @@ spotLight.intensity = 2.0
 spotlight.diffuse = ZColor(r: 0, g: 0, b: 255, a: 255)
 spotLight.coneAngle = 60.0
 
-var dirLight = createLight(LightKind.Directional, Vector3(x:0.0, y: -3.0, z: -3.0), ZColor(r:0, g:0, b:255, a:255))
-dirLight.target = Vector3(x: 1.0, y: -2.0, z: -2.0)
-dirLight.intensity = 2.0
-dirLight.diffuse = ZColor(r: 100, g:255, b:100, a:255)
+# var dirLight = createLight(LightKind.Directional, Vector3(x:0.0, y: -3.0, z: -3.0), ZColor(r:0, g:0, b:255, a:255))
+# dirLight.target = Vector3(x: 1.0, y: -2.0, z: -2.0)
+# dirLight.intensity = 2.0
+# dirLight.diffuse = ZColor(r: 100, g:255, b:100, a:255)
 
 var pointLight = createLight(LightKind.Point, Vector3(x:0.0, y: 4.0, z: 5.0), ZColor(r:255, g:255, b:255, a:255))
 pointLight.intensity = 2.0
-pointLight.diffuse = ZColor(r: 100, g:100, b:255, a:255)
-pointLight.radius = 3.0
+pointLight.diffuse = ZColor(r: 255, g:100, b:0, a:255)
+pointLight.radius = 30.0
 
 setShaderLightsValues(shader)
 
@@ -216,7 +223,7 @@ while running:
   pollInput()
 
   camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
-  
+
   beginDrawing()
   clearBackground(ZENGRAY)
   
@@ -225,11 +232,22 @@ while running:
   drawCube(Vector3(x: -16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(Vector3(x: 16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(Vector3(x: 0.0, y: 2.5, z: 16.0), 32.0, 5.0, 1.0, WHITE)
+  
+  drawLight(pointLight)
+  
   drawModel(model, WHITE)
+
+
   end3dMode()
+
+  beginGUI()
+  endGUI()
 
   drawText("Hello zengine!", 5, 5, 30, ZColor(r: 255, g: 255, b: 255, a: 255))
 
   endDrawing()
 
-zengine.shutdown()
+  swapBuffers()
+
+zengine.gui.shutdown()
+zengine.core.shutdown()

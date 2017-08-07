@@ -1,4 +1,4 @@
-import logging, zgl, zmath, sdl2, os, strutils, assimp, opengl, texture, color, tables, glm
+import logging, zgl, zmath, sdl2, os, strutils, assimp, opengl, texture, color, tables, glm, math
 
 converter toMat4f*(m: TMatrix4x4) : Mat4f = 
   mat4f(
@@ -194,22 +194,87 @@ proc drawPlane*(centerPos: Vector3, size: Vector2, color: ZColor) =
   zglEnd()
   zglPopMatrix()
 
+proc drawCircle3d*(center: Vector3, radius: float, rotationAxis: Vector3, rotationAngle: float, color: ZColor) =
+  zglPushMatrix()
+  zglTranslatef(center.x, center.y, center.z)
+  zglRotatef(rotationAngle, rotationAxis.x, rotationAxis.y, rotationAxis.z)
+
+  zglBegin(DrawMode.ZGLLines)
+  var i = 0.0
+  while i < 360.0:
+    zglColor4ub(color.r, color.g, color.b, color.a)
+
+    zglVertex3f(sin(degToRad(i))*radius, cos(degToRad(i)*radius), 0.0)
+    zglVertex3f(sin(degToRad(i + 10))*radius, cos(degToRad(i + 10)*radius), 0.0)
+    i += 10.0
+  zglEnd()
+  zglPopMatrix()
+
+proc drawSphereWires*(centerPos: Vector3, radius: float, rings: int, slices: int, color: ZColor) =
+  zglPushMatrix()
+  zglTranslatef(centerPos.x, centerPos.y, centerPos.z)
+  zglScalef(radius, radius, radius)
+
+  zglBegin(DrawMode.ZGLLines)
+  zglColor4ub(color.r, color.g, color.b, color.a)
+
+  for i in 0..<rings + 2:
+    for j in 0..<slices:
+      zglVertex3f(
+        cos(degToRad(270+(180/(rings + 1))*i.float)) * sin(degToRad(j*360/slices)),
+        sin(degToRad(270+(180/(rings + 1))*i.float)),
+        cos(degToRad(270+(180/(rings + 1))*i.float)) * cos(degToRad(j*360/slices))
+      )
+      zglVertex3f(
+        cos(degToRad(270+(180/(rings + 1))*(i+1).float)) * sin(degToRad((j+1)*360/slices)),
+        sin(degToRad(270+(180/(rings + 1))*(i+1).float)),
+        cos(degToRad(270+(180/(rings + 1))*(i+1).float)) * cos(degToRad((j+1)*360/slices))
+      )
+
+      zglVertex3f(
+        cos(degToRad(270+(180/(rings + 1))*(i+1).float)) * sin(degToRad((j+1)*360/slices)),
+        sin(degToRad(270+(180/(rings + 1))*(i+1).float)),
+        cos(degToRad(270+(180/(rings + 1))*(i+1).float)) * cos(degToRad((j+1)*360/slices))
+      )
+      zglVertex3f(
+        cos(degToRad(270+(180/(rings + 1))*(i+1).float)) * sin(degToRad(j*360/slices)),
+        sin(degToRad(270+(180/(rings + 1))*(i+1).float)),
+        cos(degToRad(270+(180/(rings + 1))*(i+1).float)) * cos(degToRad(j*360/slices))
+      )
+
+      zglVertex3f(
+        cos(degToRad(270+(180/(rings + 1))*i.float)) * sin(degToRad(j*360/slices)),
+        sin(degToRad(270+(180/(rings + 1))*i.float)),
+        cos(degToRad(270+(180/(rings + 1))*i.float)) * cos(degToRad(j*360/slices))
+      )
+      zglVertex3f(
+        cos(degToRad(270+(180/(rings + 1))*i.float)) * sin(degToRad(j*360/slices)),
+        sin(degToRad(270+(180/(rings + 1))*i.float)),
+        cos(degToRad(270+(180/(rings + 1))*i.float)) * cos(degToRad(j*360/slices))
+      )
+
+  zglEnd()
+  zglPopMatrix()
+
+
 proc init(material: var Material, some: PMaterial, filename: string, shader: Shader) =
   var path : AIString
   if getTexture(some, TexDiffuse, 0, addr path) == ReturnSuccess:
     let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
     material.texDiffuse = loadTexture(filename)
+  else:
+    material.texDiffuse = getDefaultTexture()
 
   if getTexture(some, TexNormals, 0, addr path) == ReturnSuccess:
-   let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+    let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
-   material.texNormal = loadTexture(filename)
+    material.texNormal = loadTexture(filename)
   
   if getTexture(some, TexSpecular, 0, addr path) == ReturnSuccess:
-   let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+    let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
-   material.texSpecular = loadTexture(filename)
+    material.texSpecular = loadTexture(filename)
   
   material.shader = shader
   
@@ -217,26 +282,26 @@ proc init(material: var Material, some: PMaterial, filename: string, shader: Sha
   var color: TColor3d
   material.colDiffuse = WHITE
   if getMaterialColor(some, AI_MATKEY_COLOR_DIFFUSE, 0, 0, addr color) == ReturnSuccess:
-   material.colDiffuse.r = int color.r * 255.0
-   material.colDiffuse.g = int color.g * 255.0
-   material.colDiffuse.b = int color.b * 255.0
+    material.colDiffuse.r = int color.r * 255.0
+    material.colDiffuse.g = int color.g * 255.0
+    material.colDiffuse.b = int color.b * 255.0
     
   material.colAmbient = WHITE
   if getMaterialColor(some, AI_MATKEY_COLOR_AMBIENT, 0, 0, addr color) == ReturnSuccess:
-   material.colAmbient.r = int color.r * 255.0
-   material.colAmbient.g = int color.g * 255.0
-   material.colAmbient.b = int color.b * 255.0
+    material.colAmbient.r = int color.r * 255.0
+    material.colAmbient.g = int color.g * 255.0
+    material.colAmbient.b = int color.b * 255.0
 
   material.colSpecular = WHITE
   if getMaterialColor(some, AI_MATKEY_COLOR_SPECULAR, 0, 0, addr color) == ReturnSuccess:
-   material.colSpecular.r = int color.r * 255.0
-   material.colSpecular.g = int color.g * 255.0
-   material.colSpecular.b = int color.b * 255.0
+    material.colSpecular.r = int color.r * 255.0
+    material.colSpecular.g = int color.g * 255.0
+    material.colSpecular.b = int color.b * 255.0
 
   var shininess: cfloat 
   material.glossiness = 100.0
   if getMaterialFloatArray(some, AI_MATKEY_SHININESS, 0, 0, addr shininess, nil) == ReturnSuccess:
-   material.glossiness = shininess
+    material.glossiness = shininess
 
 proc findNodeAnim(animation: PAnimation, nodeName: string) : PNodeAnim =
   for i in 0..<animation.channelCount:
@@ -382,7 +447,7 @@ proc addBoneData(bone: var Bone, boneIndex: int, weight: float) =
       bone.weights[i] = weight
       return
   
-  assert(false)
+  # assert(false)
 
 proc initBones*(index: int, model: var Model, mesh: PMesh) =
   for i in 0..<mesh.boneCount:
@@ -420,7 +485,8 @@ proc initMesh(model: var Model, index: int, mesh: PMesh) =
       model.normals.add(mesh.normals.offset(n).y)
       model.normals.add(mesh.normals.offset(n).z)
 
-  initBones(index, model, mesh)
+  if model.scene.animationCount > 0:
+    initBones(index, model, mesh)
 
   if mesh.hasFaces():
     for f in 0..<mesh.faceCount:
@@ -451,10 +517,13 @@ proc init(model: var Model, scene: PScene, filename: string, shader: Shader) =
   model.normals = @[]
   model.indices = @[]
   model.materials = newSeq[Material](scene.materialCount)
-  model.bones = newSeq[Bone](numVertices)
-  model.boneInfos = @[]
-  model.boneMapping = initTable[string, int]()
+  
   model.scene = scene
+
+  if model.scene.animationCount > 0:
+    model.bones = newSeq[Bone](numVertices)
+    model.boneInfos = @[]
+    model.boneMapping = initTable[string, int]()
   
   model.globalInverseTransform = inverse(toMat4f(scene.rootNode.transformation))
 
@@ -481,5 +550,8 @@ proc loadModel*(filename: string, shader: Shader = getDefaultShader()): Model =
 
 proc drawModel*(model: var Model, tint: ZColor) =
   var transforms : seq[Mat4f] = @[]
-  boneTransform(model, float(getTicks()) * 0.001, transforms)
-  zglDrawModel(model, transforms)
+  if model.scene.animationCount > 0:
+    boneTransform(model, float(getTicks()) * 0.001, transforms)
+    zglDrawModel(model, transforms)
+  else:
+    zglDrawModel(model)

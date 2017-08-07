@@ -26,6 +26,17 @@ proc init*(width, height: int, mainWindowTitle: string) =
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_FLAGS        , SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE)
 
+  doAssert 0 == glSetAttribute(SDL_GL_RED_SIZE, 8)
+  doAssert 0 == glSetAttribute(SDL_GL_GREEN_SIZE, 8)
+  doAssert 0 == glSetAttribute(SDL_GL_BLUE_SIZE, 8)
+  doAssert 0 == glSetAttribute(SDL_GL_ALPHA_SIZE, 8)
+
+  doAssert 0 == glSetAttribute(SDL_GL_DEPTH_SIZE, 24)
+  doAssert 0 == glSetAttribute(SDL_GL_DOUBLEBUFFER, 1)
+
+  doAssert 0 == glSetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1)
+  doAssert 0 == glSetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4)
+
   window = createWindow(mainWindowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width.cint, height.cint, SDL_WINDOW_SHOWN or SDL_WINDOW_OPENGL or SDL_WINDOW_INPUT_GRABBED)
 
   if window.isNil:
@@ -103,13 +114,11 @@ proc beginDrawing*() =
   zglClearScreenBuffers()
   zglLoadIdentity()
 
-proc swapBuffers() =
+proc swapBuffers*() =
   sdl2.glSwapWindow(window)
 
 proc endDrawing*() =
   zglDraw()
-
-  swapBuffers()
 
 proc clearBackground*(color: ZColor) =
   zglClearColor(color.r, color.g, color.b, color.a)  
