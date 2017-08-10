@@ -1,4 +1,12 @@
 *
 !/**/
 !*.*
+
+# Nim stuff
 nimcache/
+
+# Blender backups
+*.blend1
+
+# Vim
+*.sw*
