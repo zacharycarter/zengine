@@ -375,7 +375,7 @@ proc loadDefaultBuffers() =
 
   glGenBuffers(1, addr lines.vboId[1]);
   glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[1]);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(int)*4*2*MAX_LINES_BATCH, addr lines.colors[0], GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*2*MAX_LINES_BATCH, addr lines.colors[0], GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(currentShader.colorLoc);
   glVertexAttribPointer(currentShader.colorLoc, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil);
 
@@ -392,7 +392,7 @@ proc loadDefaultBuffers() =
 
   glGenBuffers(1, addr triangles.vboId[1]);
   glBindBuffer(GL_ARRAY_BUFFER, triangles.vboId[1]);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(int)*4*3*MAX_TRIANGLES_BATCH, addr triangles.colors[0], GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*3*MAX_TRIANGLES_BATCH, addr triangles.colors[0], GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(currentShader.colorLoc);
   glVertexAttribPointer(currentShader.colorLoc, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil);
 
@@ -415,7 +415,7 @@ proc loadDefaultBuffers() =
 
   glGenBuffers(1, addr quads.vboId[2]);
   glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[2]);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(int)*4*4*MAX_QUADS_BATCH, addr quads.colors[0], GL_DYNAMIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(cuchar)*4*4*MAX_QUADS_BATCH, addr quads.colors[0], GL_DYNAMIC_DRAW);
   glEnableVertexAttribArray(currentShader.colorLoc);
   glVertexAttribPointer(currentShader.colorLoc, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil);
 
