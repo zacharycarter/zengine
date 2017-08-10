@@ -88,3 +88,12 @@ proc unloadTexture*(texture: var Texture2D) =
     zglDeleteTexture(texture.id)
 
     info("[TEX ID $1] Unloaded texture data from VRAM (GPU)" % $texture.id)
+
+proc loadRenderTexture*(width, height: int): RenderTexture2D =
+  result = zglLoadRenderTexture(width, height)
+
+proc drawTextureRec*(texture: Texture2D, sourceRec: Rectangle, position: Vector2, tint: ZColor) =
+  let destRec = Rectangle(x: int position.x, y: int position.y, width: abs(sourceRec.width), height: abs(sourceRec.height))
+
+  drawTexture(texture, sourceRec, destRec, vector2Zero(), 0.0, tint)
+

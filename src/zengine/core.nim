@@ -145,3 +145,35 @@ proc getMousePosition*(): Vector2 =
 
 proc disableCursor*() =
   discard sdl2.setRelativeMouseMode(sdl2.True32)
+
+proc beginTextureMode*(target: RenderTexture2D) =
+  zglDraw()
+
+  zglEnableRenderTexture(target.id)
+
+  zglClearScreenBuffers()
+
+  zglViewport(0, 0, target.texture.data.w, target.texture.data.h)
+
+  zglMatrixMode(MatrixMode.ZGLProjection)
+  zglLoadIdentity()
+
+  zglOrtho(0, float target.texture.data.w, float target.texture.data.h, 0, 0.0, 1.0)
+
+  zglMatrixMode(MatrixMode.ZGLModelView)
+  zglLoadIdentity()
+
+proc endTextureMode*() =
+  zglDraw()
+
+  zglDisableRenderTexture()
+
+  setupViewport()
+
+  zglMatrixMode(MatrixMode.ZGLProjection)
+  zglLoadIdentity()
+
+  zglOrtho(0, 960, 540, 0, 0.0, 1.0)
+
+  zglMatrixMode(MatrixMode.ZGLModelView)
+  zglLoadIdentity()

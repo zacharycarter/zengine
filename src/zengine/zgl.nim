@@ -61,6 +61,10 @@ type
     data*: sdl2.SurfacePtr
     mipMaps*: int
 
+  RenderTexture2D* = object
+    id*: GLuint
+    texture*, depth*: Texture2D
+
   Camera* = object
     position*, target*, up*: Vector3
     fovY*: float
@@ -1201,3 +1205,49 @@ proc setShaderValue*(shader: Shader, uniformLoc: GLint, data: openarray[GLfloat]
     glUniform4fv(uniformLoc, GLsizei(1), unsafeAddr data[0])
   else:
     warn("Shader value float array size not supported")
+
+proc zglLoadRenderTexture*(width, height: int): RenderTexture2D =
+  result.texture.data = sdl2.createRGBSurface(0, width, height, 32, 0, 0, 0, 0)
+  result.depth.data = sdl2.createRGBSurface(0, width, height, 32, 0, 0, 0, 0)
+
+  glGenTextures(1, addr result.texture.id)
+  glBindTexture(GL_TEXTURE_2D, result.texture.id)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nil)
+  glBindTexture(GL_TEXTURE_2D, 0)
+
+  glGenTextures(1, addr result.depth.id)
+  glBindTexture(GL_TEXTURE_2D, result.depth.id)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24.ord, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, nil)
+  glBindTexture(GL_TEXTURE_2D, 0)
+
+  glGenFramebuffers(1, addr result.id)
+  glBindFramebuffer(GL_FRAMEBUFFER, result.id)
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, result.texture.id, 0)
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, result.depth.id, 0)
+
+  assert glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+proc zglEnableRenderTexture*(id: GLuint) =
+  glBindFramebuffer(GL_FRAMEBUFFER, id)
+
+proc zglDisableRenderTexture*() =
+  glBindFramebuffer(GL_FRAMEBUFFER, 0)
+
+proc beginShaderMode*(shader: Shader) = 
+  if currentShader.id != shader.id:
+    zglDraw()
+    currentShader = shader
+
+proc endShaderMode*() =
+  beginShaderMode(getDefaultShader())
