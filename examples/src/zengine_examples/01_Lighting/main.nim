@@ -216,6 +216,11 @@ while running:
     of MouseWheel:
       var mouseWheelEvent = cast[MouseWheelEventPtr](addr evt)
       mouseWheelMovement = mouseWheelEvent.y
+    of KeyUp:
+      # Close on ESC Pressed
+      let keyEvent = cast[KeyboardEventPtr](addr evt)
+      if keyEvent.keysym.sym == K_ESCAPE:
+        running = false
     else:
       discard
 
