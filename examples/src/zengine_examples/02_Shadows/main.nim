@@ -23,7 +23,7 @@ var
 camera.setMode(CameraMode.Free)
 #camera.setMode(CameraMode.FirstPerson)
 
-let depthShader = loadShader("examples/data/shaders/glsl400/shadows/debug_quad.vs", "examples/data/shaders/glsl400/shadows/debug_quad.fs")
+let depthShader = loadShader("examples/data/shaders/glsl330/shadows/debug_quad.vs", "examples/data/shaders/glsl330/shadows/debug_quad.fs")
 
 setShaderValuei(depthShader, getShaderLocation(depthShader, "depthMap"), [0.GLint], 1)
 
