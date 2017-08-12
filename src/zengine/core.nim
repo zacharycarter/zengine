@@ -37,7 +37,7 @@ proc init*(width, height: int, mainWindowTitle: string) =
   doAssert 0 == glSetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1)
   doAssert 0 == glSetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4)
 
-  window = createWindow(mainWindowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width.cint, height.cint, SDL_WINDOW_SHOWN or SDL_WINDOW_OPENGL or SDL_WINDOW_INPUT_GRABBED)
+  window = createWindow(mainWindowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width.cint, height.cint, SDL_WINDOW_SHOWN or SDL_WINDOW_OPENGL)
 
   if window.isNil:
     quit(QUIT_FAILURE)
