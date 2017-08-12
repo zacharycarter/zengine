@@ -177,7 +177,7 @@ var
 camera.setMode(CameraMode.Free)
 #camera.setMode(CameraMode.FirstPerson)
 
-let shader = loadShader("examples/data/shaders/glsl400/lighting/forward.vs", "examples/data/shaders/glsl400/lighting/forward.fs")
+let shader = loadShader("examples/data/shaders/glsl330/lighting/forward.vs", "examples/data/shaders/glsl330/lighting/forward.fs")
 
 var model = loadModel("examples/data/models/cyborg/cyborg.obj", shader)
 

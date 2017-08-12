@@ -185,7 +185,7 @@ var
 camera.setMode(CameraMode.Free)
 #camera.setMode(CameraMode.FirstPerson)
 
-let shader = loadShader("examples/data/shaders/glsl400/forward.vs", "examples/data/shaders/glsl400/forward.fs")
+let shader = loadShader("examples/data/shaders/glsl330/forward.vs", "examples/data/shaders/glsl330/forward.fs")
 
 var model = loadModel("examples/data/models/mannequin/walking.dae", shader)
 

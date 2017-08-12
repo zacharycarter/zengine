@@ -306,7 +306,7 @@ proc loadShader*(vsFilePath, fsFilePath: string): Shader =
 proc loadDefaultShader(): Shader =
 
   let vDefaultShaderStr = """
-    #version 400
+    #version 330
     layout(location=0) in vec3 inPosition;
     layout(location=1) in vec2 inTexCoord0;
     layout(location=2) in vec4 inColor;
@@ -321,7 +321,7 @@ proc loadDefaultShader(): Shader =
   """
 
   let fDefaultShaderStr = """
-    #version 400
+    #version 330
     in vec2 exFragTexCoord;
     in vec4 exColor;
     out vec4 outColor;

@@ -119,7 +119,7 @@ proc init_device() =
   dev.frag_shader = glCreateShader(GL_FRAGMENT_SHADER)
   
   var vertex_shader = """
-    #version 150
+    #version 330
     in vec2 Position;
     in vec2 TexCoord;
     in vec4 Color;
@@ -133,7 +133,7 @@ proc init_device() =
     }
   """
   var fragment_shader  = """
-    #version 150
+    #version 330
     precision mediump float;
     uniform sampler2D Texture;
     in vec2 Frag_UV;

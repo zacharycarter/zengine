@@ -174,7 +174,7 @@ var
 # camera.setMode(CameraMode.Free)
 camera.setMode(CameraMode.FirstPerson)
 
-let shader = loadShader("examples/data/shaders/glsl400/animation/forward.vs", "examples/data/shaders/glsl400/animation/forward.fs")
+let shader = loadShader("examples/data/shaders/glsl330/animation/forward.vs", "examples/data/shaders/glsl330/animation/forward.fs")
 
 var model = loadModel("examples/data/models/mutant/mutant_idle.dae", shader)
 

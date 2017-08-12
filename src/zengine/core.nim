@@ -22,7 +22,7 @@ proc init*(width, height: int, mainWindowTitle: string) =
   discard sdl_image.init()
 
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
-  doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2)
+  doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_FLAGS        , SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
   doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE)
 
