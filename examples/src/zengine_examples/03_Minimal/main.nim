@@ -22,12 +22,11 @@ var
 
   # Camera control
   camera = Camera(
-    position: Vector3(x: 0, y: 5, z: 1),
-    target: Vector3(x: 0, y: 0, z: 0),
+    position: Vector3(x: 0, y: 2, z: 5),
+    target: Vector3(x: 0, y: 1, z: 0),
     up: Vector3(x: 0, y: 1, z: 0),
     fovY: 60
   )
-  mouseWheelMovement: int
   mouseXRel: int
   mouseYRel: int
 
@@ -35,14 +34,10 @@ var
 # Use a first person camera
 camera.setMode(CameraMode.FirstPerson)
 
-# render target
-let target = loadRenderTexture(ScreenWidth, ScreenHeight)
-
 
 # Main Game loop
 while running:
   # Reset
-  mouseWheelMovement = 0
   mouseXRel = 0
   mouseYRel = 0
 
@@ -56,11 +51,17 @@ while running:
       of QuitEvent:
         running = false
 
-      # Shutdown of ESC pressed
       of KeyUp:
         let keyEvent = cast[KeyboardEventPtr](addr evt)
+        # Shutdown if ESC pressed
         if keyEvent.keysym.sym == K_ESCAPE:
           running = false
+
+        # Get some info about the camera state
+        if keyEvent.keysym.sym == K_C:
+            echo("camera.position=" & $camera.position)
+            echo("camera.target=" & $camera.target)
+            echo("camera.up=" & $camera.up)
 
       # Update camera if mouse moved
       of MouseMotion:
@@ -68,28 +69,20 @@ while running:
         mouseXRel = mouseMoveEvent.xrel
         mouseYRel = mouseMoveEvent.yrel
 
-      # TODO remove?
-      # Update camera scroll
-      of MouseWheel:
-        let mouseWheelEvent = cast[MouseWheelEventPtr](addr evt)
-        mouseWheelMovement = mouseWheelEvent.y
-
       else:
         discard
 
   # Update the camera's position
-  camera.update(mouseWheelMovement, mouseXrel, mouseYRel)
+  camera.update(0, -mouseXrel, -mouseYRel)
 
   # Start drawing
   beginDrawing()
   clearBackground(BLACK)
 
-  beginTextureMode(target)
   begin3dMode(camera)
-  drawCube(Vector3(x: 0, y: 0, z: 2), 1, 1, 1, RED)
+  drawCube(Vector3(x: 0, y: 2, z: 0), 1, 1, 1, RED)
   drawPlane(Vector3(x: 0, y: 0, z: 0), Vector2(x: 32, y: 32), GRAY)
   end3dMode()
-  endTextureMode()
 
   drawText("Hello zengine!", 8, 8, 16, ZColor(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF))
 
