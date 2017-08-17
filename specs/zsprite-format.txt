@@ -1,0 +1,97 @@
+ZSprite File Format  [v1.0]
+---------------------------
+
+NOTE: This is currently a working draft.  When the format is finalized, then
+      this notice will be removed.  Anything is subject to chance from one day
+      to the next.
+
+- The ZSprite file format is for defining spritesheet based animated sprites.
+- It's extension is `.zsprite`.
+- It's a pure text file; there should be no embedded data in it.
+- Comments are allowed in the file.  They begin with a `#` symbol.
+
+  - Comments can trail at the end of a line.
+
+- Whitespace doesn't matter, except for the case of newlines.
+- The first line in the file should be it's version.  e.g. `v1.0`, `v1.1`,
+  `v2.0`.  The current version is `v1.0`.
+- The image data for the sprite is defined in a single bitmap file (a.k.a this
+  is the spritesheet).  It should be specified in the second line of the file.
+  It's location should be relative to that of the `.zsprite` file.  It's also
+  recommened to use a PNG file for this.
+- Any geometric data (such as points, sizes, rectangles, etc.) are in
+  non-negative integers.  The coordinate system uses the typical X-Axis flipped
+  cartesian that is used for most images.  (0, 0) is in the top left, and
+  (n, m) is the bottom right.
+- Any timing data for frames & sequences should be positive ingeters.  Units of
+  time are measured in milliseconds.
+- Frames for the sprite are defined using a series of rectangles, which are
+  taken from the spritesheet.
+
+  - The ZSprite must have at least one Frame defined in it to be a valid ZSprite
+    file.
+  - The first frame defined will be considered to be the "Default Frame."
+  - Frames must have a unique name amoung the other frames in the ZSprite.
+    Case sensitive.  Valid characters are [a-zA-Z0-9], `-`, `.`, and `_`.  No
+    whitespace please.  Reserved keywords are `frame_info`, `sequence_info`,
+    and `looping`.
+  - Frames are defined by a rectangle that's within the bounds of the
+    spritesheet's dimensions.
+
+    - A Rectangle is defined by a point and a size.
+
+  - A Frame can also have an origin/center point.  By default is is at (0, 0) of
+    the rectangle, but it can be anywhere within the bounds of the rectangle.
+    This is purely optional.
+  - Frames are allowed to overlap on the spritesheet.
+  - Frames are defined in the `frame_info` section of the text file.
+  - An example frames may look like this:
+    ```
+    frame_info:
+      # Idle, origin offset
+      idle1 = 0,0 : 16,32 : 8,32
+      idle2 = 16, 0: 16, 32: 8, 32
+      idle3=32,0:16,32:8,32
+
+      # Walk, default origin of (0, 0), which doesn't need to be speciied
+      walk.1=0,32:16,32
+      walk.2 = 16,32 : 16,32
+    ```
+
+- Sequences are a collection frames given timing values.
+
+  - Putting sequences in the ZSprite are completley optional, but do note that
+    this will mean that the sprite isn't animated and purely static.
+  - The same naming rules for the Frames apply to the sequences as well.
+  - Sequences can have effects/modifieers applied to them.
+    
+    - These are specified in square brackets next to the name.
+    - There is currently only one modifier available, and that's `looping`.  It
+      well, loops the sequence forever.
+
+  - The actualy sequence data is a CSV list of the frames w/ a timing value with
+    it.
+  - An example of sequence info may look like this:
+    ```
+    sequence_info:
+      idle [looping] = idle1:750, idle2:750, idle3:750, idle2:750
+      walk.right=walk.1:250,walk.2:250
+      walk.left =walk.2 :250,  walk.1:  250
+    ```
+  - If the time is up on a sequence, then it will hold on the last frame
+    indefinatley.
+
+- If you would like to see some examples, take a look at the contents of
+  `zsprite_examples/`.
+
+
+
+Other
+-----
+The ZSprite file format is based off the the animated sprite format that was
+used in the Masala game engine.  It was an experimental 2D engine that used the
+ChaiScript langauge for scripting and was based around that.  It's no longer in
+active development, but if you want to take a look at it, you can find it here:
+
+    https://gitlab.com/define-private-public/Masala
+
