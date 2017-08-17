@@ -10,7 +10,7 @@ const
 
 
 # Init zengine
-zengine.init(ScreenWidth, ScreenHeight, "Zengine example: 03_Minimal")
+zengine.init(ScreenWidth, ScreenHeight, "Zengine example: 00_Minimal")
 zengine.gui.init()
 
 
