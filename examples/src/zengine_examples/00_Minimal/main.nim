@@ -22,8 +22,8 @@ var
 
   # Camera control
   camera = Camera(
-    position: Vector3(x: 0, y: 2, z: 5),
-    target: Vector3(x: 0, y: 1, z: 0),
+    position: Vector3(x: 4, y: 2, z: 4),
+    target: Vector3(x: 0, y: 1.8, z: 0),
     up: Vector3(x: 0, y: 1, z: 0),
     fovY: 60
   )
