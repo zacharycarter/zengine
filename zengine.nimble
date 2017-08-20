@@ -11,6 +11,7 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 0.17.1"
+requires "strfmt >= 0.8.4"
 requires "sdl2 >= 1.1"
 requires "opengl >= 1.1.0"
 requires "glm >= 0.1.1"
