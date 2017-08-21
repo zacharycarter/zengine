@@ -1,15 +1,18 @@
 import logging, geom, os, sdl2.image as sdl_image, sdl2, strutils, zgl, zmath
 
+type
+  FileNotFoundError = object of IOError
+  TextureCreationError = object of SystemError
+
+
 proc loadTexture*(filename: string): Texture2D =
   if not fileExists(filename):
-    warn("Attempting to load non-existent texture file: $1" % filename)
-    return
+    raise newException(FileNotFoundError, "Attempting to load non-existent texture file: $1" % filename)
   
   result.data = load(filename.cstring)
   
   if result.data.isNil:
-    warn("Texture could not be created")
-    return
+    raise newException(TextureCreationError, "Texture could not be created")
 
   result.mipmaps = 1
 
