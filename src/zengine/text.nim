@@ -227,7 +227,10 @@ proc loadDefaultFont*() =
 
     inc(i, 32)
 
-  defaultFont.texture = loadTexture(imagePixels, imgWidth, imgHeight)
+  try:
+    defaultFont.texture = loadTexture(imagePixels, imgWidth, imgHeight)
+  except:
+    error "Failed to load default font texture."
 
   # discard sdl_image.savePNG(defaultFont.texture.data, "default_font.png") # Test saving default font image
 

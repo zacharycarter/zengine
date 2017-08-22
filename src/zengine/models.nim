@@ -262,19 +262,28 @@ proc init(material: var Material, some: PMaterial, filename: string, shader: Sha
   if getTexture(some, TexDiffuse, 0, addr path) == ReturnSuccess:
     let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
-    material.texDiffuse = loadTexture(filename)
+    try:
+      material.texDiffuse = loadTexture(filename)
+    except:
+      error "Failed to load diffuse texture for material with filename: " % filename
   else:
     material.texDiffuse = getDefaultTexture()
 
   if getTexture(some, TexNormals, 0, addr path) == ReturnSuccess:
     let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
-    material.texNormal = loadTexture(filename)
+    try:
+      material.texNormal = loadTexture(filename)
+    except:
+      error "Failed to load normal texture for material with filename: " % filename
   
   if getTexture(some, TexSpecular, 0, addr path) == ReturnSuccess:
     let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
-    material.texSpecular = loadTexture(filename)
+    try:
+      material.texSpecular = loadTexture(filename)
+    except:
+      error "Failed to load specular texture for material with filename: " % filename
   
   material.shader = shader
   
