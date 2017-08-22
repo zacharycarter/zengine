@@ -1,8 +1,8 @@
 import logging, geom, os, sdl2.image as sdl_image, sdl2, strutils, zgl, zmath
 
 type
-  FileNotFoundError = object of IOError
-  TextureCreationError = object of SystemError
+  FileNotFoundError* = object of IOError
+  TextureCreationError* = object of SystemError
 
 
 proc loadTexture*(filename: string): Texture2D =
