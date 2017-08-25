@@ -74,6 +74,24 @@ proc init*(width, height: int, mainWindowTitle: string) =
 proc getTime(): uint32 =
   result = sdl2.getTicks() * 1000
 
+proc begin2dMode*(camera: Camera2D) =
+  zglDraw()
+
+  zglLoadIdentity()
+
+  let matOrigin = matrixTranslate(-camera.target.x, -camera.target.y, 0.0)
+  let matRotation = matrixRotate(Vector3(x: 0, y: 0, z: 1.0), degToRad(camera.rotation))
+  let matScale = matrixScale(camera.zoom, camera.zoom, 1.0)
+  let matTranslation = matrixTranslate(camera.offset.x + camera.target.x, camera.offset.y + camera.target.y, 0.0)
+
+  var matTransform = matrixMultiply(matrixMultiply(matOrigin, matrixMultiply(matScale, matRotation)), matTranslation)
+
+  zglMultMatrix(matrixToFloat(matTransform))
+
+proc end2dMode*() =
+  zglDraw()
+  zglLoadIdentity()
+
 proc begin3dMode*(camera: Camera) =
   zglDraw()
 

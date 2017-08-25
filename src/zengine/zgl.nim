@@ -69,6 +69,10 @@ type
     position*, target*, up*: Vector3
     fovY*: float
 
+  Camera2D* = object
+    offset*, target*: Vector2
+    rotation*, zoom*: float
+
   Material* = object
     shader*: Shader
     texDiffuse*, texNormal*, texSpecular*: Texture2D
