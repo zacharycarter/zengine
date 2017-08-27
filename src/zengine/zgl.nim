@@ -43,7 +43,7 @@ type
     vaoId: GLuint
     textureId: GLuint
     shaderId: GLuint
-    projection, modelView: Matrix
+    projection, modelView: Mat4f
 
   DynamicBuffer = object
     vCounter: int # vertex position counter to process (and draw) from full buffer
