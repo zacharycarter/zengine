@@ -1,4 +1,4 @@
-import math, assimp
+import math, assimp, glm
 
 type
   Vector2* = object
@@ -12,6 +12,42 @@ type
     m1*, m5*, m9*, m13*: float32
     m2*, m6*, m10*, m14*: float32
     m3*, m7*, m11*, m15*: float32
+
+converter toMat4f*(m: Matrix): Mat4f =
+  result[0][0] = m.m0
+  result[0][1] = m.m1
+  result[0][2] = m.m2
+  result[0][3] = m.m3
+  result[1][0] = m.m4
+  result[1][1] = m.m5
+  result[1][2] = m.m6
+  result[1][3] = m.m7
+  result[2][0] = m.m8
+  result[2][1] = m.m9
+  result[2][2] = m.m10
+  result[2][3] = m.m11
+  result[3][0] = m.m12
+  result[3][1] = m.m13
+  result[3][2] = m.m14
+  result[3][3] = m.m15
+
+converter toMatrix*(m: Mat4f): Matrix =
+  result.m0 = m[0][0]
+  result.m1 = m[0][1]
+  result.m2 = m[0][2]
+  result.m3 = m[0][3]
+  result.m4 = m[1][0]
+  result.m5 = m[1][1]
+  result.m6 = m[1][2]
+  result.m7 = m[1][3]
+  result.m8 = m[2][0]
+  result.m9 = m[2][1]
+  result.m10 = m[2][2]
+  result.m11 = m[2][3]
+  result.m12 = m[3][0]
+  result.m13 = m[3][1]
+  result.m14 = m[3][2]
+  result.m15 = m[3][3]
 
 proc clamp*(value, min, max: float32): float32 =
   let res = if value < min: min else: value

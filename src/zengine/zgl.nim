@@ -125,7 +125,7 @@ type
   #   materialIndex*: int
 
 var
-  stack: array[MATRIX_STACK_SIZE, Matrix]
+  stack: array[MATRIX_STACK_SIZE, Mat4f]
   stackCounter = 0
   currentDrawMode: DrawMode
   draws: seq[DrawCall]
@@ -136,8 +136,8 @@ var
   currentDepth = -1.0
   defaultShader, currentShader: Shader
   whiteTexture: GLuint
-  modelView, projection: Matrix
-  currentMatrix: ptr Matrix
+  modelView, projection: Mat4f
+  currentMatrix: ptr Mat4f
   currentMatrixMode: MatrixMode
   useTempBuffer = false
   tempBufferCount = 0
@@ -1080,7 +1080,7 @@ proc zglDrawModel*(model: Model) =
 
       let viewDirLoc = glGetUniformLocation(material.shader.id, "viewDir")
       if viewDirLoc != -1:
-        glUniform3f(viewDirLoc, matView.m8, matView.m9, matView.m10)
+        glUniform3f(viewDirLoc, matView[2][0], matView[2][1], matView[2][2])
       
       let glossinessLoc = glGetUniformLocation(material.shader.id, "glossiness")
       if glossinessLoc != -1:
@@ -1164,7 +1164,7 @@ proc zglDrawModel*(model: Model, transforms: var seq[Mat4f]) =
 
       let viewDirLoc = glGetUniformLocation(material.shader.id, "viewDir")
       if viewDirLoc != -1:
-        glUniform3f(viewDirLoc, matView.m8, matView.m9, matView.m10)
+        glUniform3f(viewDirLoc, matView[2][0], matView[2][1], matView[2][2])
       
       let glossinessLoc = glGetUniformLocation(material.shader.id, "glossiness")
       if glossinessLoc != -1:
