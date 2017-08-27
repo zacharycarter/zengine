@@ -1,4 +1,4 @@
-import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, zmath
+import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm
 
 type
   CharInfo = object
@@ -281,7 +281,7 @@ proc getCharIndex(font: Font, letter: int): int =
 
   return index
 
-proc drawTextEx(font: Font, text: string, position: Vector2, fontSize: float, spacing: int, tint: ZColor) =
+proc drawTextEx(font: Font, text: string, position: Vec2f, fontSize: float, spacing: int, tint: ZColor) =
   let length = text.len
   var textOffsetX = 0
   var textOffsetY = 0
@@ -315,7 +315,7 @@ proc drawTextEx(font: Font, text: string, position: Vector2, fontSize: float, sp
           width: int font.chars[index].rec.width.float*scaleFactor,
           height: int font.chars[index].rec.height.float*scaleFactor,
         ),
-        vector2Zero(),
+        vec2f(0),
         0.0,
         tint
       )
@@ -330,7 +330,7 @@ proc drawTextEx(font: Font, text: string, position: Vector2, fontSize: float, sp
 
 proc drawText*(text: string, posX, posY: float, fontSize: float, color: ZColor) =
   if defaultFont.texture.id != 0:
-    let position = Vector2(x: posx, y: posY)
+    let position = vec2f(posx, posY)
 
     let defaultFontSize = 10.0
     var size = if fontSize < defaultFontSize: defaultFontSize else: fontSize

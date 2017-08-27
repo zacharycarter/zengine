@@ -1,4 +1,4 @@
-import logging, geom, os, sdl2.image as sdl_image, sdl2, strutils, zgl, zmath
+import logging, geom, os, sdl2.image as sdl_image, sdl2, strutils, zgl, glm
 
 type
   FileNotFoundError* = object of IOError
@@ -50,7 +50,7 @@ proc loadTexture*(imagePixels: openArray[ZColor], width, height: int): Texture2D
 
   result.id = zglLoadTexture(result.data.pixels, result.data.w, result.data.h, result.data.format.format, result.mipmaps)
 
-proc drawTexture*(tex: Texture2D, sourceRect: Rectangle, destRect: Rectangle, origin: Vector2, rotation: float, tint: ZColor) =
+proc drawTexture*(tex: Texture2D, sourceRect: Rectangle, destRect: Rectangle, origin: Vec2f, rotation: float, tint: ZColor) =
   if tex.id != 0:
     var adjustedSrc = sourceRect
     if(sourceRect.width < 0): adjustedSrc.x -= sourceRect.width
@@ -95,8 +95,8 @@ proc unloadTexture*(texture: var Texture2D) =
 proc loadRenderTexture*(width, height: int): RenderTexture2D =
   result = zglLoadRenderTexture(width, height)
 
-proc drawTextureRec*(texture: Texture2D, sourceRec: Rectangle, position: Vector2, tint: ZColor) =
+proc drawTextureRec*(texture: Texture2D, sourceRec: Rectangle, position: Vec2f, tint: ZColor) =
   let destRec = Rectangle(x: int position.x, y: int position.y, width: abs(sourceRec.width), height: abs(sourceRec.height))
 
-  drawTexture(texture, sourceRec, destRec, vector2Zero(), 0.0, tint)
+  drawTexture(texture, sourceRec, destRec, vec2f(0), 0.0, tint)
 
