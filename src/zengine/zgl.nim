@@ -681,7 +681,8 @@ proc drawDefaultBuffers() =
   if lines.vCounter > 0 or quads.vCounter > 0 or triangles.vCounter > 0:
     glUseProgram(currentShader.id)
 
-    var matMVP = matrixMultiply(modelView, projection)
+    # var matMVP = matrixMultiply(modelView, projection)
+    var matMVP = transpose(modelView * projection)
 
     var matMVPFloatArray = matrixToFloat(matMVP)
     glUniformMatrix4fv(currentShader.mvpLoc, 1, false, addr matMVPFloatArray[0])
