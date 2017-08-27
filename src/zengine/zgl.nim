@@ -502,10 +502,10 @@ proc zglInit*(width, height: int) =
   currentDrawMode = DrawMode.ZGLTriangles
 
   for i in 0..<MATRIX_STACK_SIZE:
-    stack[i] = matrixIdentity()
+    stack[i] = mat4f()
 
-  projection = matrixIdentity()
-  modelView = matrixIdentity()
+  projection = mat4f()
+  modelView = mat4f()
   currentMatrix = addr modelView
 
   glDisable(GL_DEPTH_TEST)
