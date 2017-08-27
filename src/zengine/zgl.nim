@@ -66,11 +66,11 @@ type
     texture*, depth*: Texture2D
 
   Camera* = object
-    position*, target*, up*: Vector3
+    position*, target*, up*: Vec3f
     fovY*: float
 
   Camera2D* = object
-    offset*, target*: Vector2
+    offset*, target*: Vec3f
     rotation*, zoom*: float
 
   Material* = object
@@ -629,6 +629,28 @@ proc zglEnd*() =
           inc(quads.tcCounter)
   
   currentDepth += (1.0f/20000.0f)
+
+proc matrixToFloat*(mat: Mat4f): array[16, GLfloat] =
+    var buffer {.global.}: array[16, GLfloat]
+  
+    buffer[0] = mat[0][0]
+    buffer[1] = mat[0][1]
+    buffer[2] = mat[0][2]
+    buffer[3] = mat[0][3]
+    buffer[4] = mat[1][0]
+    buffer[5] = mat[1][1]
+    buffer[6] = mat[1][2]
+    buffer[7] = mat[1][3]
+    buffer[8] = mat[2][0]
+    buffer[9] = mat[2][1]
+    buffer[10] = mat[2][2]
+    buffer[11] = mat[2][3]
+    buffer[12] = mat[3][0]
+    buffer[13] = mat[3][1]
+    buffer[14] = mat[3][2]
+    buffer[15] = mat[3][3]
+
+    return buffer
 
 proc matrixToFloat*(mat: Matrix): array[16, GLfloat] =
   var buffer {.global.}: array[16, GLfloat]

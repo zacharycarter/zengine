@@ -1,4 +1,4 @@
-import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, zmath, math
+import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, zmath, math, glm
 
 
 var 
@@ -108,7 +108,7 @@ proc begin3dMode*(camera: Camera) =
   zglMatrixMode(MatrixMode.ZGLModelView)
   zglLoadIdentity()
 
-  var cameraView = matrixLookAt(camera.position, camera.target, camera.up)
+  var cameraView = lookAt(camera.position, camera.target, camera.up)
   zglMultMatrix(matrixToFloat(cameraView))
 
   zglEnableDepthTest()
@@ -158,8 +158,8 @@ proc pollInput*() =
 proc isKeyDown* (key:cint): bool {.inline.}=
   currentKeyboardState[int(getScancodeFromKey(key))] != 0
 
-proc getMousePosition*(): Vector2 =
-  result = Vector2(x: mousePositionX.float, y: mousePositionY.float)
+proc getMousePosition*(): Vec2f =
+  result = vec2f(mousePositionX.float, mousePositionY.float)
 
 proc disableCursor*() =
   discard sdl2.setRelativeMouseMode(sdl2.True32)

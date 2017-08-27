@@ -1,4 +1,4 @@
-import zgl, math, zmath, core, sdl2
+import zgl, math, glm, core, sdl2
 
 type
   CameraMode* = enum
@@ -25,10 +25,10 @@ const PLAYER_MOVEMENT_SENSITIVITY = 20.0
 const CAMERA_MOUSE_MOVE_SENSITIVITY = 0.003
 
 var cameraTargetDistance = 0.0
-var cameraAngle = vector2Zero()
+var cameraAngle = vec2f(0)
 var playerEyesPosition = 1.85
 var cameraMode = CameraMode.Custom
-var previousMousePosition: Vector2
+var previousMousePosition: Vec2f
 var swingCounter = 0
 
 var cameraMoveControl = [sdl2.K_w, sdl2.K_s, sdl2.K_d, sdl2.K_a, sdl2.K_e, sdl2.K_q]
@@ -43,7 +43,7 @@ proc setMode*(camera: var Camera, mode: CameraMode) =
 
   cameraTargetDistance= sqrt(dx*dx + dy*dy + dz*dz)
 
-  var distance: Vector2
+  var distance: Vec2f
   distance.x = sqrt(dx*dx + dz*dz)
   distance.y = sqrt(dx*dx + dy*dy)
 
@@ -58,7 +58,7 @@ proc setMode*(camera: var Camera, mode: CameraMode) =
   cameraMode = mode
 
 proc update*(camera: var Camera, mouseWheelMove: int, mouseXDelta, mouseYDelta: int) =
-  var mousePositionDelta = vector2Zero()
+  var mousePositionDelta = vec2f(0)
   var mousePosition = getMousePosition()
 
   mousePositionDelta.x = mousePosition.x - previousMousePosition.x;
