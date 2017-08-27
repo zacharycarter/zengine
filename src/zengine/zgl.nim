@@ -1,4 +1,4 @@
-import logging, math, opengl, sdl2, strutils, util, zmath, os, tables, assimp, glm
+import logging, math, opengl, sdl2, strutils, util, os, tables, assimp, glm, zmath
 
 const 
   MATRIX_STACK_SIZE = 16
@@ -822,7 +822,7 @@ proc zglViewport*(x, y, width, height: int) =
   glViewport(x, y, width, height)
 
 proc zglLoadIdentity*() =
-  currentMatrix[] = matrixIdentity()
+  currentMatrix[] = mat4f()
 
 proc zglMatrixMode*(mode: MatrixMode) =
   if mode == MatrixMode.ZGLProjection:
@@ -845,10 +845,8 @@ proc zglPushMatrix*() =
 
 
 proc zglOrtho*(left, right, bottom, top, near, far: float) =
-  #var matOrtho = ortho[GLfloat](left, right, bottom, top, near, far)
-  var matOrtho = matrixOrtho(left, right, bottom, top, near, far)
-  matrixTranspose(matOrtho)
-  currentMatrix[] = matrixMultiply(currentMatrix[], matOrtho)
+  var matOrtho = ortho[float32](left, right, bottom, top, near, far)
+  currentMatrix[] = currentMatrix[] * transpose(matOrtho)
 
 proc unloadDefaultShader() = 
   glUseProgram(0)
@@ -890,17 +888,21 @@ proc zglDisableTexture*() =
     zglDraw()
 
 proc zglTranslatef*(x, y, z: float) =
-  var tmp = matrixTranslate(x, y, z)
-  currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
+  # var tmp = matrixTranslate(x, y, z)
+  # currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
+  var tmp = translate(mat4f(), vec3f(x, y, z))
+  currentMatrix[] = currentMatrix[] * tmp
 
 proc zglRotatef*(angleDeg: float, x, y, z: float) =
-  var matRotation = matrixIdentity()
+  # var matRotation = matrixIdentity()
 
-  var axis = Vector3(x: x, y: y, z: z)
-  vectorNormalize(axis)
-  matRotation = matrixRotate(axis, degToRad(angleDeg))
+  # var axis = Vector3(x: x, y: y, z: z)
+  # vectorNormalize(axis)
+  # matRotation = matrixRotate(axis, degToRad(angleDeg))
 
-  currentMatrix[] = matrixMultiply(currentMatrix[], matRotation)
+  # currentMatrix[] = matrixMultiply(currentMatrix[], matRotation)
+  var matRotation = rotate(mat4f(), vec3f(x, y, z), degToRad(angleDeg))
+  currentMatrix[] = currentMatrix[] * matRotation
 
 proc zglScalef*(x, y, z: float) =
   discard
