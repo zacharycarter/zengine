@@ -1134,7 +1134,8 @@ proc zglDrawModel*(model: Model, transforms: var seq[Mat4f]) =
   glBindVertexArray(model.vaoId)
 
   modelView = matModelView
-  let matMVP = matrixMultiply(modelview, projection)
+  # let matMVP = matrixMultiply(modelview, projection)
+  let matMVP = transpose(modelView * projection)
   var matMVPFloatArray = matrixToFloat(matMVP)
 
   for meshEntry in model.meshEntries:
@@ -1159,8 +1160,9 @@ proc zglDrawModel*(model: Model, transforms: var seq[Mat4f]) =
 
       if modelMatrixLoc != -1:
         var transInvTransform  = transform
-        matrixTranspose(transInvTransform)
-        matrixInvert(transInvTransform)
+        # matrixTranspose(transInvTransform)
+        # matrixInvert(transInvTransform)
+        transInvTransform = inverse(transpose(transInvTransform))
 
         var transInvTransformFloatArray = matrixToFloat(transInvTransform)
         glUniformMatrix4fv(modelMatrixLoc, 1, false, addr transInvTransformFloatArray[0])
