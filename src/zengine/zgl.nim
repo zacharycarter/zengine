@@ -1,4 +1,4 @@
-import logging, math, opengl, sdl2, strutils, util, os, tables, assimp, glm, zmath
+import logging, math, opengl, sdl2, strutils, util, os, tables, assimp, glm
 
 const 
   MATRIX_STACK_SIZE = 16
@@ -141,7 +141,7 @@ var
   currentMatrixMode: MatrixMode
   useTempBuffer = false
   tempBufferCount = 0
-  tempBuffer: seq[Vector3]
+  tempBuffer: seq[Vec3f]
 
 proc getDefaultTexture*(): Texture2D =
   var rMask, gMask, bMask, aMask: uint32
@@ -490,10 +490,10 @@ proc zglInit*(width, height: int) =
 
   loadDefaultBuffers()
 
-  tempBuffer = newSeq[Vector3](TEMP_VERTEX_BUFFER_SIZE)
+  tempBuffer = newSeq[Vec3f](TEMP_VERTEX_BUFFER_SIZE)
 
   for i in 0..<TEMP_VERTEX_BUFFER_SIZE:
-    tempBuffer[i] = vectorZero()
+    tempBuffer[i] = vec3f(0)
 
   draws = newSeq[DrawCall](MAX_DRAWS_BY_TEXTURE)
 
@@ -577,7 +577,8 @@ proc zglVertex3f*(x, y, z: GLdouble) =
 proc zglEnd*() =
   if useTempBuffer:
     for i in 0..<tempBufferCount:
-      vectorTransform(tempBuffer[i], currentMatrix[])
+        tempBuffer[i] = (currentMatrix[] * vec4f(tempBuffer[i], 1)).xyz
+
     
     useTempBuffer = false
 
@@ -651,28 +652,6 @@ proc matrixToFloat*(mat: Mat4f): array[16, GLfloat] =
     buffer[15] = mat[3][3]
 
     return buffer
-
-proc matrixToFloat*(mat: Matrix): array[16, GLfloat] =
-  var buffer {.global.}: array[16, GLfloat]
-
-  buffer[0] = mat.m0
-  buffer[1] = mat.m4
-  buffer[2] = mat.m8
-  buffer[3] = mat.m12
-  buffer[4] = mat.m1
-  buffer[5] = mat.m5
-  buffer[6] = mat.m9
-  buffer[7] = mat.m13
-  buffer[8] = mat.m2
-  buffer[9] = mat.m6
-  buffer[10] = mat.m10
-  buffer[11] = mat.m14
-  buffer[12] = mat.m3
-  buffer[13] = mat.m7
-  buffer[14] = mat.m11
-  buffer[15] = mat.m15
-
-  return buffer
 
 proc drawDefaultBuffers() =
   var matProjection = projection
@@ -905,9 +884,8 @@ proc zglRotatef*(angleDeg: float, x, y, z: float) =
   currentMatrix[] = currentMatrix[] * matRotation
 
 proc zglScalef*(x, y, z: float) =
-  discard
-  var tmp = matrixScale(x, y, z)
-  currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
+  var tmp = scale(mat4f(), vec3f(x, y, z))
+  currentMatrix[] = currentMatrix[] * tmp
 
 proc zglNormal3f*(x, y, z: float) =
   # TODO 
@@ -933,19 +911,20 @@ proc zglDeleteTexture*(id: var GLuint) =
     glDeleteTextures(1, addr id)
 
 proc zglFrustum*(left, right, bottom, top, near, far: float) =
-  var frustum = matrixFrustum(left, right, bottom, top, near, far)
-  matrixTranspose(frustum)
-  currentMatrix[] = matrixMultiply(currentMatrix[], frustum)
+  # var frustum = matrixFrustum(left, right, bottom, top, near, far)
+  var frustum = frustum[float32](left, right, bottom, top, near, far)
+  # matrixTranspose(frustum)
+  # currentMatrix[] = matrixMultiply(currentMatrix[], frustum)
+  currentMatrix[] = currentMatrix[] * transpose(frustum)
 
 proc zglMultMatrix*(m: array[16, GLfloat]) =
-  var tmp = Matrix(
-    m0:m[0], m1:m[1], m2:m[2], m3:m[3],
-    m4:m[4], m5:m[5], m6:m[6], m7:m[7],
-    m8:m[8], m9:m[9], m10:m[10], m11:m[11],
-    m12:m[12], m13:m[13], m14:m[14], m15:m[15]
-  )
-  matrixTranspose(tmp)
-  currentMatrix[] = matrixMultiply(currentMatrix[], tmp)
+  var tmp = transpose(mat4f(
+    vec4f(m[0], m[1], m[2], m[3]),
+    vec4f(m[4], m[5], m[6], m[7]),
+    vec4f(m[8], m[9], m[10], m[11]),
+    vec4f(m[12], m[13], m[14], m[15])
+  ))
+  currentMatrix[] = currentMatrix[] * tmp
 
 proc zglEnableDepthTest*() =
   glEnable(GL_DEPTH_TEST)
@@ -1047,13 +1026,16 @@ proc zglDrawModel*(model: Model) =
   #var transform = matrixIdentity()
   # var transform = matrixRotate(Vector3(x: 1, y: 0, z: 0), 90)
   # transform = matrixMultiply(transform, matrixScale(0.05, 0.05, 0.05))
-  var transform = matrixIdentity()
-  let matModelView = matrixMultiply(transform, matView)
+  # var transform = matrixIdentity()
+  # let matModelView = matrixMultiply(transform, matView)
+  var transform = mat4f()
+  let matModelView = transform * matView
 
   glBindVertexArray(model.vaoId)
 
   modelView = matModelView
-  let matMVP = matrixMultiply(modelview, projection)
+  # let matMVP = matrixMultiply(modelview, projection)
+  let matMVP = transpose(modelView * projection)
   var matMVPFloatArray = matrixToFloat(matMVP)
 
   for meshEntry in model.meshEntries:
@@ -1074,9 +1056,10 @@ proc zglDrawModel*(model: Model) =
       let modelMatrixLoc = glGetUniformLocation(material.shader.id, "modelMatrix")
 
       if modelMatrixLoc != -1:
-        var transInvTransform  = transform
-        matrixTranspose(transInvTransform)
-        matrixInvert(transInvTransform)
+        var transInvTransform  = inverse(transpose(transform))
+        # matrixTranspose(transInvTransform)
+        # matrixInvert(transInvTransform)
+
 
         var transInvTransformFloatArray = matrixToFloat(transInvTransform)
         glUniformMatrix4fv(modelMatrixLoc, 1, false, addr transInvTransformFloatArray[0])
@@ -1128,8 +1111,10 @@ proc zglDrawModel*(model: Model, transforms: var seq[Mat4f]) =
   let matProjection = projection
 
   # var transform = matrixIdentity()
-  var transform = matrixScale(0.05, 0.05, 0.05)
-  let matModelView = matrixMultiply(transform, matView)
+  # var transform = matrixScale(0.05, 0.05, 0.05)
+  # let matModelView = matrixMultiply(transform, matView)
+  var transform = scale(mat4f(), vec3f(0.5, 0.5, 0.5))
+  let matModelView = transform * matView
 
   glBindVertexArray(model.vaoId)
 
