@@ -8,8 +8,8 @@ type
     id: int
     enabled: bool
     kind: LightKind
-    position: Vector3
-    target: Vector3
+    position: Vec3f
+    target: Vec3f
     radius: float
     diffuse: ZColor
     intensity: float
@@ -24,7 +24,7 @@ var lights: array[MAX_LIGHTS, Light]
 var lightsCount = 0
 var lightsLocs: array[MAX_LIGHTS, array[8, int]]
 
-proc createLight(kind: LightKind, position: Vector3, diffuse: ZColor): Light =
+proc createLight(kind: LightKind, position: Vec3f, diffuse: ZColor): Light =
   result = nil
 
   if lightsCount < MAX_LIGHTS:
@@ -33,7 +33,7 @@ proc createLight(kind: LightKind, position: Vector3, diffuse: ZColor): Light =
       kind: kind,
       enabled: true,
       position: position,
-      target: vectorZero(),
+      target: vec3f(0),
       intensity: 1.0,
       diffuse: diffuse
     )
@@ -75,8 +75,8 @@ proc setShaderLightsValues(shader: Shader) =
           tempFloat[0] = lights[i].radius
           setShaderValue(shader, lightsLocs[i][4].GLint, tempFloat, 1)
         of LightKind.Directional:
-          var direction = vectorSubtract(lights[i].target, lights[i].position)
-          vectorNormalize(direction)
+          var direction = lights[i].target - lights[i].position
+          direction = normalize(direction)
 
           tempFloat[0] = direction.x
           tempFloat[1] = direction.y
@@ -88,8 +88,8 @@ proc setShaderLightsValues(shader: Shader) =
           tempFloat[2] = lights[i].position.z
           setShaderValue(shader, lightsLocs[i][2].GLint, tempFloat, 3)
 
-          var direction = vectorSubtract(lights[i].target, lights[i].position)
-          vectorNormalize(direction)
+          var direction = lights[i].target - lights[i].position
+          direction = normalize(direction)
 
           tempFloat[0] = direction.x
           tempFloat[1] = direction.y
@@ -184,8 +184,8 @@ var model = loadModel("examples/data/models/mutant/mutant_idle.dae", shader)
 
 getShaderLightsLocation(shader)
 
-var spotLight = createLight(LightKind.Spot, Vector3(x:0.0, y:5.0, z:0.0), ZColor(r:255, g:255, b:255, a:255))
-spotLight.target = Vector3(x: 0.0, y: 0.0, z: 0.0)
+var spotLight = createLight(LightKind.Spot, vec3f(0.0, 5.0, 0.0), ZColor(r:255, g:255, b:255, a:255))
+spotLight.target = vec3f(0.0, 0.0, 0.0)
 spotLight.intensity = 2.0
 spotlight.diffuse = ZColor(r: 0, g: 0, b: 255, a: 255)
 spotLight.coneAngle = 60.0
@@ -195,7 +195,7 @@ spotLight.coneAngle = 60.0
 # dirLight.intensity = 2.0
 # dirLight.diffuse = ZColor(r: 100, g:255, b:100, a:255)
 
-var pointLight = createLight(LightKind.Point, Vector3(x:0.0, y: 4.0, z: 5.0), ZColor(r:255, g:255, b:255, a:255))
+var pointLight = createLight(LightKind.Point, vec3f(0.0, 4.0, 5.0), ZColor(r:255, g:255, b:255, a:255))
 pointLight.intensity = 2.0
 pointLight.diffuse = ZColor(r: 255, g:100, b:0, a:255)
 pointLight.radius = 30.0
@@ -233,10 +233,10 @@ while running:
   clearBackground(ZENGRAY)
   
   begin3dMode(camera)
-  drawPlane(Vector3(x: 0.0, y: 0.0, z: 0.0), Vector2(x: 32.0, y: 32.0), GREEN)
-  drawCube(Vector3(x: -16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, BLUE)
-  drawCube(Vector3(x: 16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, RED)
-  drawCube(Vector3(x: 0.0, y: 2.5, z: 16.0), 32.0, 5.0, 1.0, WHITE)
+  drawPlane(vec3f(0.0, 0.0, 0.0), vec2f(32.0, 32.0), GREEN)
+  drawCube(vec3f(-16.0, 2.5, 0.0), 1.0, 5.0, 32.0, BLUE)
+  drawCube(vec3f(16.0, 2.5, 0.0), 1.0, 5.0, 32.0, RED)
+  drawCube(vec3f(0.0, 2.5, 16.0), 32.0, 5.0, 1.0, WHITE)
   
   drawLight(pointLight)
   

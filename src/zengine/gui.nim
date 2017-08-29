@@ -1,6 +1,6 @@
 {.experimental.}
 
-import zmath
+import glm
 
 import nuklear, opengl
 
@@ -52,8 +52,7 @@ var config : convert_config
 var 
   ctx : ref context = new(nuklear.context)
   dev : Device = Device()
-  fb_scale = Vector2(x: 1.0,
-  y: 1.0)
+  fb_scale = vec2f(1.0, 1.0)
   vertex_layout = @[
     draw_vertex_layout_element(
       attribute: VERTEX_POSITION,

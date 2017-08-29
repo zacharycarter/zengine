@@ -80,8 +80,8 @@ while running:
   clearBackground(BLACK)
 
   begin3dMode(camera)
-  drawCube(Vector3(x: 0, y: 2, z: 0), 1, 1, 1, RED)
-  drawPlane(Vector3(x: 0, y: 0, z: 0), Vector2(x: 32, y: 32), GRAY)
+  drawCube(vec3f(0, 2, 0), 1, 1, 1, RED)
+  drawPlane(vec3f(0, 0, 0), vec2f(32, 32), GRAY)
   end3dMode()
 
   drawText("Hello zengine!", 8, 8, 16, ZColor(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF))

@@ -1,4 +1,4 @@
-import zengine, sdl2, opengl
+import zengine, sdl2, opengl, glm
 
 const 
   WIDTH = 960
@@ -11,9 +11,9 @@ var
   evt = sdl2.defaultEvent
   running = true
   camera = Camera(
-    position: Vector3(x: 4, y: 2, z: 4),
-    target: Vector3(x: 0, y: 1.8, z: 0),
-    up: Vector3(x: 0, y: 1, z: 0),
+    position: vec3f(4, 2, 4),
+    target: vec3f(0, 1.8, 0),
+    up: vec3f(0, 1, 0),
     fovY: 60
   )
   mouseWheelMovement = 0
@@ -63,10 +63,10 @@ while running:
   
   beginTextureMode(target)
   begin3dMode(camera)
-  drawPlane(Vector3(x: 0.0, y: 0.0, z: 0.0), Vector2(x: 32.0, y: 32.0), GREEN)
-  drawCube(Vector3(x: -16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, BLUE)
-  drawCube(Vector3(x: 16.0, y: 2.5, z: 0.0), 1.0, 5.0, 32.0, RED)
-  drawCube(Vector3(x: 0.0, y: 2.5, z: 16.0), 32.0, 5.0, 1.0, WHITE)
+  drawPlane(vec3f(0.0, 0.0, 0.0), vec2f(32.0, 32.0), GREEN)
+  drawCube(vec3f(-16.0, 2.5, 0.0), 1.0, 5.0, 32.0, BLUE)
+  drawCube(vec3f(16.0, 2.5, 0.0), 1.0, 5.0, 32.0, RED)
+  drawCube(vec3f(0.0, 2.5, 16.0), 32.0, 5.0, 1.0, WHITE)
   drawModel(model, WHITE)
   end3dMode()
   endTextureMode()
@@ -75,7 +75,7 @@ while running:
   # setShaderValue(depthShader, getShaderLocation(depthShader, 
   # "near_plane"), [1.0.GLfloat], 1)
   # setShaderValue(depthShader, getShaderLocation(depthShader, "far_plane"), [7.5.GLfloat], 1)
-  drawTextureRec(target.depth, Rectangle(x: 0, y: 0, width: target.depth.data.w, height: -target.depth.data.h), Vector2(x: 0, y: 0), RED)
+  drawTextureRec(target.depth, Rectangle(x: 0, y: 0, width: target.depth.data.w, height: -target.depth.data.h), vec2f(0), RED)
   endShaderMode()
 
   drawText("Hello zengine!", 5, 5, 30, ZColor(r: 255, g: 255, b: 255, a: 255))

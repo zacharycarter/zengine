@@ -1,6 +1,6 @@
-import math, zgl, zmath, texture, geom
+import math, zgl, texture, geom, glm
 
-proc drawTriangle*(v1, v2, v3: Vector3, color: ZColor) =
+proc drawTriangle*(v1, v2, v3: Vec3f, color: ZColor) =
   zglEnableTexture(getDefaultTexture().id)
 
   zglBegin(DrawMode.ZGLQuads)
@@ -13,7 +13,7 @@ proc drawTriangle*(v1, v2, v3: Vector3, color: ZColor) =
 
   zglDisableTexture()
 
-proc drawCircleV*(center: Vector2, radius: float, color: ZColor) =
+proc drawCircleV*(center: Vec2f, radius: float, color: ZColor) =
   zglEnableTexture(getDefaultTexture().id)
 
   zglBegin(DrawMode.ZGLQuads)
@@ -31,7 +31,7 @@ proc drawCircleV*(center: Vector2, radius: float, color: ZColor) =
 
   zglDisableTexture()
 
-proc drawRectangleV*(position, size: Vector2, color: ZColor) =
+proc drawRectangleV*(position, size: Vec2f, color: ZColor) =
   zglEnableTexture(getDefaultTexture().id)
 
   zglBegin(DrawMode.ZGLQuads)
@@ -54,8 +54,8 @@ proc drawRectangleV*(position, size: Vector2, color: ZColor) =
   zglDisableTexture()
 
 proc drawRectangle*(posX, posY, width, height: int, color: ZColor) =
-  let position = Vector2(x: float posX, y: float posY)
-  let size = Vector2(x: float width, y: float height)
+  let position = vec2f(float posX, float posY)
+  let size = vec2f(float width, float height)
 
   drawRectangleV(position, size, color)
 

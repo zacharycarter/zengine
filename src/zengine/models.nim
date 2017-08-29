@@ -1,4 +1,4 @@
-import logging, zgl, zmath, sdl2, os, strutils, assimp, opengl, texture, color, tables, glm, math
+import logging, zgl, sdl2, os, strutils, assimp, opengl, texture, color, tables, glm, math
 
 converter toMat4f*(m: TMatrix4x4) : Mat4f = 
   mat4f(
@@ -13,7 +13,7 @@ const ASSIMP_LOAD_FLAGS = aiProcess_Triangulate or aiProcess_GenSmoothNormals or
 proc offset*[A](some: ptr A; b: int): ptr A =
   result = cast[ptr A](cast[int](some) + (b * sizeof(A)))
 
-proc drawCube*(position: Vector3, width, height, length: float, color: ZColor) =
+proc drawCube*(position: Vec3f, width, height, length: float, color: ZColor) =
   let x, y, z = 0.0
 
   zglPushMatrix()
@@ -106,7 +106,7 @@ proc drawGrid*(slices: int, spacing: float) =
     
     zglEnd()
 
-proc drawCubeWires*(position: Vector3, width, height, length: float, color: ZColor) =
+proc drawCubeWires*(position: Vec3f, width, height, length: float, color: ZColor) =
   let x = 0.0
   let y = 0.0
   let z = 0.0
@@ -174,7 +174,7 @@ proc drawCubeWires*(position: Vector3, width, height, length: float, color: ZCol
   zglEnd()
   zglPopMatrix()
 
-proc drawPlane*(centerPos: Vector3, size: Vector2, color: ZColor) =
+proc drawPlane*(centerPos: Vec3f, size: Vec2f, color: ZColor) =
   zglPushMatrix()
   zglTranslatef(centerPos.x, centerPos.y, centerPos.z)
   zglScalef(size.x, 1.0f, size.y)
@@ -194,7 +194,7 @@ proc drawPlane*(centerPos: Vector3, size: Vector2, color: ZColor) =
   zglEnd()
   zglPopMatrix()
 
-proc drawCircle3d*(center: Vector3, radius: float, rotationAxis: Vector3, rotationAngle: float, color: ZColor) =
+proc drawCircle3d*(center: Vec3f, radius: float, rotationAxis: Vec3f, rotationAngle: float, color: ZColor) =
   zglPushMatrix()
   zglTranslatef(center.x, center.y, center.z)
   zglRotatef(rotationAngle, rotationAxis.x, rotationAxis.y, rotationAxis.z)
@@ -210,7 +210,7 @@ proc drawCircle3d*(center: Vector3, radius: float, rotationAxis: Vector3, rotati
   zglEnd()
   zglPopMatrix()
 
-proc drawSphereWires*(centerPos: Vector3, radius: float, rings: int, slices: int, color: ZColor) =
+proc drawSphereWires*(centerPos: Vec3f, radius: float, rings: int, slices: int, color: ZColor) =
   zglPushMatrix()
   zglTranslatef(centerPos.x, centerPos.y, centerPos.z)
   zglScalef(radius, radius, radius)
