@@ -70,7 +70,7 @@ type
     fovY*: float
 
   Camera2D* = object
-    offset*, target*: Vec3f
+    offset*, target*: Vec2f
     rotation*, zoom*: float
 
   Material* = object

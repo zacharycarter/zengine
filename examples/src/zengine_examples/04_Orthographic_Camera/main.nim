@@ -1,6 +1,6 @@
 # Minimal example to open up a zengine window
 
-import zengine, sdl2, opengl, random
+import zengine, sdl2, opengl, random, glm
 
 
 # Constants
@@ -37,8 +37,8 @@ var
 
   # Camera control
   camera = Camera2D(
-    target: Vector2(x: float32 player.x + 20, y: float32 player.y + 20),
-    offset: vector2Zero(),
+    target: vec2f(float32 player.x + 20, float32 player.y + 20),
+    offset: vec2f(0),
     rotation: 0.0,
     zoom: 1.0
   )
@@ -98,12 +98,13 @@ while running:
   elif isKeyDown(sdl2.K_e):
     camera.rotation += 1.0
 
-  camera.target = Vector2(x: float player.x + 20, y: float player.y + 20)
+  camera.target = vec2f(float player.x + 20, float player.y + 20)
 
   # Start drawing
   beginDrawing()
   clearBackground(WHITE)
 
+  begin2dMode(camera)
   drawRectangle(-6000, 320, 13000, 8000, ZENGRAY)
 
   for i in 0..<MaxBuildings:
@@ -114,7 +115,7 @@ while running:
   drawRectangle(int camera.target.x, -500, 1, 540*4, GREEN)
   drawRectangle(-500, int camera.target.y, 960*4, 1, GREEN)
 
-  begin2dMode(camera)
+  
   end2dMode()
 
   # begin3dMode(camera)

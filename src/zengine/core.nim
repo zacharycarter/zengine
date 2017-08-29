@@ -79,12 +79,14 @@ proc begin2dMode*(camera: Camera2D) =
 
   zglLoadIdentity()
 
-  let matOrigin = matrixTranslate(-camera.target.x, -camera.target.y, 0.0)
-  let matRotation = matrixRotate(Vector3(x: 0, y: 0, z: 1.0), degToRad(camera.rotation))
-  let matScale = matrixScale(camera.zoom, camera.zoom, 1.0)
-  let matTranslation = matrixTranslate(camera.offset.x + camera.target.x, camera.offset.y + camera.target.y, 0.0)
+  let matOrigin = translate(mat4f(), vec3f(-camera.target.x, -camera.target.y, 0))
+  let matRotate = rotate(mat4f(), vec3f(0, 0, 1.0), degToRad(camera.rotation))
+  let matScale = scale(mat4f(), vec3f(camera.zoom, camera.zoom, 1.0))
+  let matTranslation = translate(mat4f(), vec3f(camera.offset.x + camera.target.x, camera.offset.y + camera.target.y, 0.0))
 
-  var matTransform = matrixMultiply(matrixMultiply(matOrigin, matrixMultiply(matScale, matRotation)), matTranslation)
+  let matTransform = matTranslation * ((matScale * matRotate) * matOrigin)
+
+  # var matTransform = matrixMultiply(matrixMultiply(matOrigin, matrixMultiply(matScale, matRotation)), matTranslation)
 
   zglMultMatrix(matrixToFloat(matTransform))
 
