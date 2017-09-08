@@ -1,4 +1,4 @@
-import logging, zgl, sdl2, os, strutils, assimp, opengl, texture, color, tables, glm, math
+import logging, zgl, sdl2, os, strutils, assimp, opengl, texture, color, tables, glm, math, timer
 
 converter toMat4f*(m: TMatrix4x4) : Mat4f = 
   mat4f(
@@ -560,7 +560,7 @@ proc loadModel*(filename: string, shader: Shader = getDefaultShader()): Model =
 proc drawModel*(model: var Model, tint: ZColor) =
   var transforms : seq[Mat4f] = @[]
   if model.scene.animationCount > 0:
-    boneTransform(model, float(getTicks()) * 0.001, transforms)
+    boneTransform(model, float(timer.totalTicks()) * 0.01, transforms)
     zglDrawModel(model, transforms)
   else:
     zglDrawModel(model)

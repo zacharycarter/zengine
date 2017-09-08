@@ -1,4 +1,4 @@
-import zengine/[camera, core, color, geom, gui, models, primitives, text, texture, zgl]
+import zengine/[camera, core, color, geom, gui, models, primitives, text, texture, timer, zgl]
 
 export 
   zengine.camera,
@@ -10,5 +10,6 @@ export
   zengine.primitives,
   zengine.text,
   zengine.texture,
+  zengine.timer,
   zengine.zgl,
   zengine

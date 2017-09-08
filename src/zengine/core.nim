@@ -1,11 +1,10 @@
-import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, math, glm
+import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, math, glm, timer
 
 
 var 
   window: sdl2.WindowPtr
   glCtx: sdl2.GlContextPtr
   consoleLogger: ConsoleLogger
-  currentTime, previousTime, updateTime: uint32
   renderOffsetX, renderOffsetY = 0
   previousKeyboardState, currentKeyboardState: ptr array[0 .. SDL_NUM_SCANCODES.int, uint8]
   previousMouseState, currentMouseState: uint8
@@ -70,10 +69,6 @@ proc init*(width, height: int, mainWindowTitle: string) =
   
   currentKeyboardState = sdl2.getKeyboardState()
 
-# Get current time in seconds since SDL2 timer was initialized
-proc getTime(): uint32 =
-  result = sdl2.getTicks() * 1000
-
 proc begin2dMode*(camera: Camera2D) =
   zglDraw()
 
@@ -127,9 +122,7 @@ proc end3dMode*() =
   zglDisableDepthTest()
 
 proc beginDrawing*() =
-  currentTime = getTime()
-  updateTime = currentTime - previousTIme
-  previousTime = currentTime
+  timer.tick()
 
   zglClearScreenBuffers()
   zglLoadIdentity()
