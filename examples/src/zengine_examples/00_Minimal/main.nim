@@ -75,6 +75,8 @@ while running:
   # Update the camera's position
   camera.update(0, -mouseXrel, -mouseYRel)
 
+  tick()
+
   # Start drawing
   beginDrawing()
   clearBackground(BLACK)

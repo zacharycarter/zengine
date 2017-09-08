@@ -58,6 +58,8 @@ while running:
 
   camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
   
+  tick()
+
   beginDrawing()
   clearBackground(BLACK)
   
@@ -67,7 +69,7 @@ while running:
   drawCube(vec3f(-16.0, 2.5, 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(vec3f(16.0, 2.5, 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(vec3f(0.0, 2.5, 16.0), 32.0, 5.0, 1.0, WHITE)
-  drawModel(model, WHITE)
+  drawModel(model, WHITE, time())
   end3dMode()
   endTextureMode()
 

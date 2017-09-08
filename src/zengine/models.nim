@@ -557,10 +557,10 @@ proc loadModel*(filename: string, shader: Shader = getDefaultShader()): Model =
 
   result.init(scene, filename, shader)
 
-proc drawModel*(model: var Model, tint: ZColor) =
+proc drawModel*(model: var Model, tint: ZColor, deltaTime: float64) =
   var transforms : seq[Mat4f] = @[]
   if model.scene.animationCount > 0:
-    boneTransform(model, float(timer.totalTicks()) * 0.01, transforms)
+    boneTransform(model, deltaTime * 0.001, transforms)
     zglDrawModel(model, transforms)
   else:
     zglDrawModel(model)

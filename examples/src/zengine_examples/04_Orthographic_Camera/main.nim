@@ -100,6 +100,8 @@ while running:
 
   camera.target = vec2f(float player.x + 20, float player.y + 20)
 
+  tick()
+
   # Start drawing
   beginDrawing()
   clearBackground(WHITE)

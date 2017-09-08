@@ -69,6 +69,8 @@ proc init*(width, height: int, mainWindowTitle: string) =
   
   currentKeyboardState = sdl2.getKeyboardState()
 
+  timer.init()
+
 proc begin2dMode*(camera: Camera2D) =
   zglDraw()
 
@@ -122,8 +124,6 @@ proc end3dMode*() =
   zglDisableDepthTest()
 
 proc beginDrawing*() =
-  timer.tick()
-
   zglClearScreenBuffers()
   zglLoadIdentity()
 

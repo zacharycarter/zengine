@@ -20,7 +20,7 @@ proc timeElapsed*() : float64 {.inline.} =
 
 # Returns the current time
 proc time*() : float64 {.inline.} =
-  float64(sdl2.getPerformanceCounter()*1000) / float64 sdl2.getPerformanceFrequency() 
+  float64(sdl2.getPerformanceCounter()*1000) / frequency
 
 # Ticks the timer
 proc tick*() {.inline.} =
@@ -31,6 +31,6 @@ proc tick*() {.inline.} =
 
 # Initializes the timer
 proc init*() =
+  frequency = float64 sdl2.getPerformanceFrequency()
   startTime = time()
   currentTime = startTime
-  frequency = float64 sdl2.getPerformanceFrequency()
