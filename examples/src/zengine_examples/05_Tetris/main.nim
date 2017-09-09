@@ -49,8 +49,8 @@ var
 
 
 
-let targetFramePeriod: uint = 16 # 16 milliseconds corresponds to 60 fps
-var frameTime: uint64 = 0
+let targetFramePeriod = 16.0 # 16 milliseconds corresponds to 60 fps
+var frameTime: float64 = 0
 
 proc limitFrameRate(clock: Timer) =
   let now = timeElapsed(clock)

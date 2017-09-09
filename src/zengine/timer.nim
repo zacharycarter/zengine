@@ -28,12 +28,12 @@ import sdl2
 # `deltaTime()` procs to get a better idea how they work.
 type Timer* = object
   ticks: uint64                                 # How many times the timer has "ticked,"
-  timeSinceLastTick: uint64                     # Amount of time (in seconds) since the last tick
+  timeSinceLastTick: float64                    # Amount of time (in seconds) since the last tick
   startTime, currentTime, previousTime: uint64  # What actually measures the time under the hood
 
 
 # How many "time units," from SDL is one second (caching the function's return)
-let frequency: uint64 = sdl2.getPerformanceFrequency()
+let frequency = sdl2.getPerformanceFrequency().float64
 
 
 # Starts the timer.  You can call this multiple times to reset it.
@@ -55,20 +55,20 @@ proc totalTicks*(self: Timer) : uint64 {.inline.} =
 # `0.01`.  If it was logically updating at 60 FPS, it would be more like
 # `0.016667`.
 # Return value is in seconds.
-proc deltaTime*(self: Timer) : uint64 {.inline.} =
+proc deltaTime*(self: Timer) : float64 {.inline.} =
   self.timeSinceLastTick
 
 
 # Returns the time elapsed since `Timer.init()` has been called.  Return value
 # is in seconds.
-proc timeElapsed*(self: Timer) : uint64 {.inline.} =
-  (self.currentTime - self.startTime)
+proc timeElapsed*(self: Timer) : float64 {.inline.} =
+  (self.currentTime - self.startTime).float64 * 1000 / frequency
 
 
 # Ticks the timer forward.
 proc tick*(self: var Timer) {.inline.} =
   self.currentTime = sdl2.getPerformanceCounter()
-  self.timeSinceLastTick = (self.currentTime - self.previousTime) div frequency
+  self.timeSinceLastTick = (self.currentTime - self.previousTime).float64 / frequency
   self.previousTime = self.currentTime
   self.ticks.inc()
 
