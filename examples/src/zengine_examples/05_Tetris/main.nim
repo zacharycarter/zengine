@@ -53,7 +53,7 @@ let targetFramePeriod = 16.0 # 16 milliseconds corresponds to 60 fps
 var frameTime: float64 = 0
 
 proc limitFrameRate(clock: Timer) =
-  let now = timeElapsed(clock)
+  let now = timeElapsed(clock) * 1000
   if frameTime > now:
     delay(uint32 frameTime - now) # Delay to maintain steady frame rate
   frameTime += targetFramePeriod

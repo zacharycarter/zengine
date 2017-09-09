@@ -245,7 +245,7 @@ while running:
   
   drawLight(pointLight)
   
-  drawModel(model, WHITE, clock.timeElapsed())
+  drawModel(model, WHITE, clock.timeElapsed() * 1000)
 
 
   end3dMode()

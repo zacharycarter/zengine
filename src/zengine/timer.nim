@@ -62,7 +62,7 @@ proc deltaTime*(self: Timer) : float64 {.inline.} =
 # Returns the time elapsed since `Timer.init()` has been called.  Return value
 # is in seconds.
 proc timeElapsed*(self: Timer) : float64 {.inline.} =
-  (self.currentTime - self.startTime).float64 * 1000 / frequency
+  (self.currentTime - self.startTime).float64 / frequency
 
 
 # Ticks the timer forward.
