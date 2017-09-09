@@ -337,3 +337,52 @@ proc drawText*(text: string, posX, posY: float, fontSize: float, color: ZColor) 
     let spacing = fontSize / defaultFontSize
 
     drawTextEx(defaultFont, text, position, size, spacing.int, color)
+
+proc measureTextEx(font: Font, text: string, fontSize: float, spacing: int): Vec2f =
+  let len = text.len
+  var 
+    tempLen = 0
+    lenCounter = 0
+
+    textWidth = 0.0
+    tempTextWidth = 0.0
+
+    textHeight = font.baseSize.float
+    scaleFactor = fontSize / font.baseSize.float
+
+  for i in 0..<len:
+    inc(lenCounter)
+
+    if not NewLines.contains(text[i]):
+      let index = getCharIndex(font, text[i].int)
+
+      if font.chars[index].advanceX != 0:
+        textWidth += font.chars[index].advanceX.float
+      else:
+        textWidth += (font.chars[index].rec.width + font.chars[index].offsetX).float
+    else:
+      if tempTextWidth < textWidth: tempTextWidth = textWidth
+      lenCounter = 0
+      textWidth = 0
+      textHeight += font.baseSize.float * 1.5
+
+    if tempLen < lenCounter: tempLen = lenCounter
+  
+  if tempTextWidth < textWidth: tempTextWidth = textWidth
+
+  
+  result.x = tempTextWidth * scaleFactor + ((tempLen - 1) * spacing).float
+  result.y = textHeight * scaleFactor
+
+
+proc measureText*(text: string, fontSize: var int): int =
+  var vec = vec2f(0)
+
+  if defaultFont.texture.id != 0:
+    let defaultFontSize = 10
+    if fontSize < defaultFontSize: fontSize = defaultFontSize
+    let spacing = fontSize div defaultFontSize
+
+    vec = measureTextEx(defaultFont, text, fontSize.float, spacing)
+
+  result = vec.x.int

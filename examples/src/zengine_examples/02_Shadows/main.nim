@@ -31,6 +31,9 @@ var model = loadModel("examples/data/models/cyborg/cyborg.obj", getDefaultShader
 
 let target = loadRenderTexture(WIDTH, HEIGHT)
 
+var clock = Timer()
+clock.start()
+
 while running:
   mouseWheelMovement = 0
   mouseXRel = 0
@@ -58,7 +61,7 @@ while running:
 
   camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
   
-  tick()
+  clock.tick()
 
   beginDrawing()
   clearBackground(BLACK)
@@ -69,7 +72,7 @@ while running:
   drawCube(vec3f(-16.0, 2.5, 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(vec3f(16.0, 2.5, 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(vec3f(0.0, 2.5, 16.0), 32.0, 5.0, 1.0, WHITE)
-  drawModel(model, WHITE, time())
+  drawModel(model, WHITE, clock.timeElapsed())
   end3dMode()
   endTextureMode()
 

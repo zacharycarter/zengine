@@ -6,7 +6,7 @@ var
   glCtx: sdl2.GlContextPtr
   consoleLogger: ConsoleLogger
   renderOffsetX, renderOffsetY = 0
-  previousKeyboardState, currentKeyboardState: ptr array[0 .. SDL_NUM_SCANCODES.int, uint8]
+  previousKeyboardState, currentKeyboardState: array[0 .. SDL_NUM_SCANCODES.int, uint8]
   previousMouseState, currentMouseState: uint8
   mousePositionX, mousePositionY: cint
 
@@ -67,7 +67,7 @@ proc init*(width, height: int, mainWindowTitle: string) =
 
   loadDefaultFont()
   
-  currentKeyboardState = sdl2.getKeyboardState()
+  currentKeyboardState = sdl2.getKeyboardState()[]
 
 proc begin2dMode*(camera: Camera2D) =
   zglDraw()
@@ -146,7 +146,12 @@ proc pollInput*() =
   currentMouseState = sdl2.getMouseState(mousePositionX, mousePositionY)
 
   previousKeyboardState = currentKeyboardState
-  currentKeyboardState = sdl2.getKeyboardState()
+  currentKeyboardState = sdl2.getKeyboardState()[]
+
+proc isKeyPressed* (key:cint): bool {.inline.} =
+  let scancodeFromKey = int(getScancodeFromKey(key))
+  if currentKeyboardState[scancodeFromKey] != previousKeyboardState[scancodeFromKey] and currentKeyboardState[scancodeFromKey] != 0:
+    result = true
 
 proc isKeyDown* (key:cint): bool {.inline.}=
   currentKeyboardState[int(getScancodeFromKey(key))] != 0

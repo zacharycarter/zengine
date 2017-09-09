@@ -61,3 +61,10 @@ proc drawRectangle*(posX, posY, width, height: int, color: ZColor) =
 
 proc drawRectangleRec*(rec: Rectangle, color: ZColor) =
   drawRectangle(rec.x, rec.y, rec.width, rec.height, color)
+
+proc drawLine*(startPosX, startPosY, endPosX, endPosY: int, color: ZColor) =
+  zglBegin(DrawMode.ZGLLines)
+  zglColor4ub(color.r, color.g, color.b, color.a)
+  zglVertex2i(startPosX, startPosY)
+  zglVertex2i(endPosX, endPosY)
+  zglEnd()

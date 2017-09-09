@@ -34,6 +34,8 @@ var
 # Use a first person camera
 camera.setMode(CameraMode.FirstPerson)
 
+var clock = Timer()
+clock.start()
 
 # Main Game loop
 while running:
@@ -75,7 +77,7 @@ while running:
   # Update the camera's position
   camera.update(0, -mouseXrel, -mouseYRel)
 
-  tick()
+  clock.tick()
 
   # Start drawing
   beginDrawing()

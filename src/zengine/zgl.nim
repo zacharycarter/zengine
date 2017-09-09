@@ -794,6 +794,9 @@ proc zglColor4ub*(x, y, z, w: int) =
 proc zglColor3f*(x, y, z: float) =
   zglColor4ub(int x * 255, int y * 255, int z * 255, 255)
 
+proc zglVertex2i*(x, y: int) =
+  zglVertex3f(x.float, y.float, currentDepth)
+
 proc zglVertex2f*(x, y: float32) =
   zglVertex3f(x, y, currentDepth)
 

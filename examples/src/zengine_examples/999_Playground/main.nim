@@ -202,6 +202,9 @@ pointLight.radius = 30.0
 
 setShaderLightsValues(shader)
 
+var clock = Timer()
+clock.start()
+
 while running:
   mouseWheelMovement = 0
   mouseXRel = 0
@@ -229,7 +232,7 @@ while running:
 
   camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
 
-  tick()
+  clock.tick()
 
   beginDrawing()
   clearBackground(ZENGRAY)
@@ -242,7 +245,7 @@ while running:
   
   drawLight(pointLight)
   
-  drawModel(model, WHITE, time())
+  drawModel(model, WHITE, clock.timeElapsed())
 
 
   end3dMode()
