@@ -1,4 +1,4 @@
-import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, math, glm, timer
+import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, math, glm
 
 
 var 
@@ -68,8 +68,6 @@ proc init*(width, height: int, mainWindowTitle: string) =
   loadDefaultFont()
   
   currentKeyboardState = sdl2.getKeyboardState()
-
-  timer.init()
 
 proc begin2dMode*(camera: Camera2D) =
   zglDraw()
