@@ -741,10 +741,10 @@ proc updateDefaultBuffers() =
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLdouble)*3*quads.vCounter, addr quads.vertices[0])
 
     glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[1])
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*2*quads.vCounter, addr quads.texcoords[0])
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat)*2*quads.vCounter, addr quads.texcoords[0])
 
     glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[2])
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int)*4*quads.vCounter, addr quads.colors[0])
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(cuchar)*4*quads.vCounter, addr quads.colors[0])
   
   glBindVertexArray(0)
 
