@@ -441,23 +441,10 @@ proc zglLoadTexture*(data: pointer, width, height: int, pixelFormat: uint32, mip
 
   glBindTexture(GL_TEXTURE_2D, id)
 
-  case sdl2.SDL_BYTESPERPIXEL(pixelFormat)
-  of 4:
-    case pixelFormat
-    of sdl2.SDL_PIXELFORMAT_RGBA8888:
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-    of sdl2.SDL_PIXELFORMAT_ABGR8888:
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
-    else:
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+  if sdl2.SDL_BYTESPERPIXEL(pixelFormat) == 4:
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
   else:
-    case pixelFormat
-    of sdl2.SDL_PIXELFORMAT_RGB888:
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
-    of sdl2.SDL_PIXELFORMAT_RGB24:
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
-    else:
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
