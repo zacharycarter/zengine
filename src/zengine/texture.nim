@@ -99,4 +99,3 @@ proc drawTextureRec*(texture: Texture2D, sourceRec: Rectangle, position: Vec2f, 
   let destRec = Rectangle(x: int position.x, y: int position.y, width: abs(sourceRec.width), height: abs(sourceRec.height))
 
   drawTexture(texture, sourceRec, destRec, vec2f(0), 0.0, tint)
-

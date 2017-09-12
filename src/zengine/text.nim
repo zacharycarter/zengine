@@ -1,4 +1,4 @@
-import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm
+import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm, os, strscans
 
 type
   CharInfo = object
@@ -7,7 +7,7 @@ type
     offsetX, offsetY: int
     advanceX: int
 
-  Font = object
+  Font* = object
     charCount: int
     texture: Texture2D
     chars: seq[CharInfo]
@@ -281,7 +281,7 @@ proc getCharIndex(font: Font, letter: int): int =
 
   return index
 
-proc drawTextEx(font: Font, text: string, position: Vec2f, fontSize: float, spacing: int, tint: ZColor) =
+proc drawTextEx*(font: Font, text: string, position: Vec2f, fontSize: float, spacing: int, tint: ZColor) =
   let length = text.len
   var textOffsetX = 0
   var textOffsetY = 0
@@ -338,7 +338,7 @@ proc drawText*(text: string, posX, posY: float, fontSize: float, color: ZColor) 
 
     drawTextEx(defaultFont, text, position, size, spacing.int, color)
 
-proc measureTextEx(font: Font, text: string, fontSize: float, spacing: int): Vec2f =
+proc measureTextEx*(font: Font, text: string, fontSize: float, spacing: int): Vec2f =
   let len = text.len
   var 
     tempLen = 0
@@ -386,3 +386,74 @@ proc measureText*(text: string, fontSize: var int): int =
     vec = measureTextEx(defaultFont, text, fontSize.float, spacing)
 
   result = vec.x.int
+
+proc loadBitmapFont(directory, filename: string): Font = 
+  proc quotedString(input: string; foo: var string, n: int): int =
+    assert input[n] == '"'
+    result = n + 1
+    while input[result] != '"':
+      inc(result)
+    foo = input[n+1..result-1]
+
+  result.texture.id = 0
+
+  var
+    fontSize = 0
+    texWidth, texHeight: int
+    texFileName: string
+    charsCount = 0
+
+    base: int
+
+  let fileContent = readfile(filename)
+  var subStr = fileContent[find(fileContent, "lineHeight") .. ^1]
+  assert scanf(subStr, "lineHeight=$i base=$i scaleW=$i scaleH=$i", fontSize, base, texWidth, texHeight)
+
+  subStr = subStr[find(subStr, "file") .. ^1]
+  assert scanf(subStr, "file=${quotedString()}", texFileName)
+  
+  subStr = subStr[find(subStr, "count") .. ^1]
+  assert scanf(subStr, "count=$i", charsCount)
+
+  let texFilepath = directory & DirSep & texFileName
+  echo texFilepath
+
+  result.texture = loadTexture(texFilepath)
+
+  result.baseSize = fontSize
+  result.charCount = charsCount
+  result.chars = newSeq[CharInfo](charsCount + 1)
+
+  var
+    charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX: int
+
+  var c = 0
+  for line in splitLines(subStr[find(subStr, "char") .. ^1]):
+    if not line.startsWith("char"):
+      continue
+    assert scanf(line, "char id=$i$sx=$i$sy=$i$swidth=$i$sheight=$i$sxoffset=$i$syoffset=$i$sxadvance=$i", charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX)
+    
+    echo c
+    result.chars[c].value = charId
+    result.chars[c].rec = Rectangle(x: charX, y: charY, width: charWidth, height: charHeight)
+    result.chars[c].offsetX = charOffsetX
+    result.chars[c].offsetY = charOffsetY
+    result.chars[c].advanceX = charAdvanceX
+
+    inc(c)
+    
+  if result.texture.id == 0:
+    result = defaultFont
+
+proc loadFont*(filename: string): Font =
+  const DEFAULT_TTF_FONTSIZE = 32
+  const DEFAULT_TTF_NUMCHARS = 95
+  const DEFAULT_FIRST_CHAR = 32
+
+  var (dir, name, ext) = splitFile(filename)
+
+  case ext
+  of ".fnt":
+    result = loadBitmapFont(dir, filename)
+  else:
+    warn "Font type not supported!"
