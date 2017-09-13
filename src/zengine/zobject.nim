@@ -2,16 +2,18 @@
 
 # Next available ID
 var nextID:uint = 1
+proc getNextID*(): uint=
+  result = nextID
+  nextID.inc()
 
 
 type ZObject* = ref object of RootObj
-  id: uint    # Unique Id for the ZObject, positive integer
+  id*: uint   # Unique Id for the ZObject, positive integer
 
 
 # Instatiate a new ZObject
 proc newZObject*(): ZObject=
-  result = ZObject(id: nextID)
-  nextID.inc()
+  result = ZObject(id: getNextID())
 
 
 # Get the ID of the ZObject.  It will always be a positive integer
