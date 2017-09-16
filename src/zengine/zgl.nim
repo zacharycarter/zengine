@@ -862,6 +862,11 @@ proc zglTranslatef*(x, y, z: float) =
   var tmp = translate(mat4f(), vec3f(x, y, z))
   currentMatrix[] = currentMatrix[] * tmp
 
+
+proc zglTranslatef*(v: Vec3f) {.inline.}=
+  currentMatrix[] *= mat4f().translate(v)
+
+
 proc zglRotatef*(angleDeg: float, x, y, z: float) =
   # var matRotation = matrixIdentity()
 
@@ -872,6 +877,14 @@ proc zglRotatef*(angleDeg: float, x, y, z: float) =
   # currentMatrix[] = matrixMultiply(currentMatrix[], matRotation)
   var matRotation = rotate(mat4f(), vec3f(x, y, z), degToRad(angleDeg))
   currentMatrix[] = currentMatrix[] * matRotation
+
+
+proc zglRotatef*(angleDeg: float; v: Vec3f) {.inline.} =
+  zglRotatef(angleDeg, v.x, v.y, v.z)
+
+
+proc zglRotatef*(quat: Quatf) {.inline.} =
+  currentMatrix[] = currentMatrix[].rotate(quat.axis(), quat.angle())
 
 proc zglScalef*(x, y, z: float) =
   var tmp = scale(mat4f(), vec3f(x, y, z))
