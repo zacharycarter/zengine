@@ -13,13 +13,13 @@ const ASSIMP_LOAD_FLAGS = aiProcess_Triangulate or aiProcess_GenSmoothNormals or
 proc offset*[A](some: ptr A; b: int): ptr A =
   result = cast[ptr A](cast[int](some) + (b * sizeof(A)))
 
-proc drawCube*(position: Vec3f, width, height, length: float, color: ZColor) =
+proc drawCube*(position: Vec3f, rotation: tuple[angle: float, axisX, axisY, axisZ: float], width, height, length: float, color: ZColor) =
   let x, y, z = 0.0
 
   zglPushMatrix()
   
   zglTranslatef(position.x, position.y, position.z)
-  #zglRotatef(sdl2.getTicks().float / 10.0, 0, 1, 0)
+  zglRotatef(rotation.angle, rotation.axisX, rotation.axisY, rotation.axisZ)
 
   zglBegin(DrawMode.ZGLTriangles)
   zglColor4ub(color.r, color.g, color.b, color.a)
