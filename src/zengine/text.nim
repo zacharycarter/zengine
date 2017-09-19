@@ -338,7 +338,7 @@ proc drawText*(text: string, posX, posY: float, fontSize: float, color: ZColor) 
 
     drawTextEx(defaultFont, text, position, size, spacing.int, color)
 
-proc measureTextEx(font: Font, text: string, fontSize: float, spacing: int): Vec2f =
+proc measureTextEx*(font: Font, text: string, fontSize: float, spacing: int): Vec2f =
   let len = text.len
   var 
     tempLen = 0
