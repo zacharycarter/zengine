@@ -1,4 +1,4 @@
-import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm
+import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm, os, strscans
 
 type
   CharInfo = object
@@ -281,7 +281,7 @@ proc getCharIndex(font: Font, letter: int): int =
 
   return index
 
-proc drawTextEx(font: Font, text: string, position: Vec2f, fontSize: float, spacing: int, tint: ZColor) =
+proc drawTextEx*(font: Font, text: string, position: Vec2f, fontSize: float, spacing: int, tint: ZColor) =
   let length = text.len
   var textOffsetX = 0
   var textOffsetY = 0
@@ -386,3 +386,67 @@ proc measureText*(text: string, fontSize: var int): int =
     vec = measureTextEx(defaultFont, text, fontSize.float, spacing)
 
   result = vec.x.int
+
+proc loadBitmapFont*(filename: string): Font =
+  proc quotedString(input: string; foo: var string, n: int): int =
+    assert input[n] == '"'
+    result = n + 1
+    while input[result] != '"':
+      inc(result)
+    foo = input[n+1..result-1]
+
+  if not fileExists(filename):
+    warn("[$1] .fnt file could not be opened" % fileName)
+    return defaultFont
+
+  let splitFilename = filename.splitFile()
+  if not (splitFilename.ext == ".fnt"):
+    warn("[$1] font file must have extension .fnt" % fileName)
+    return defaultFont
+  
+  var
+    fontSize = 0
+    texWidth, texHeight: int
+    texFileName: string
+    charsCount: int
+    base: int
+
+  let fontFileContent = readFile(filename)
+  var rest = substr(fontFileContent, fontFileContent.find("lineHeight"), fontFileContent.len)
+
+  
+  discard scanf(rest, "lineHeight=$i base=$i scaleW=$i scaleH=$i", fontSize, base, texWidth, texHeight)
+
+  rest = subStr(rest, rest.find("file"), rest.len)
+
+  discard scanf(rest, "file=${quotedString()}", texFileName)
+
+  let texFilePath = splitFilename.dir & DirSep & texFileName
+  if not fileExists(texFilePath):
+    warn("[$1] texture file for font does not exist" % fileName)
+    return defaultFont
+
+  result.texture = loadTexture(texFilePath)
+  
+  rest = subStr(rest, rest.find("count"), rest.len)
+  discard scanf(rest, "count=$i", charsCount)
+
+  result.baseSize = fontSize
+  result.charCount = charsCount
+  result.chars = @[]
+
+  var
+    charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX: int
+  
+  for line in splitLines subStr(rest, rest.find("char"), rest.len):
+    discard scanf(line, "char id=$i$sx=$i$sy=$i$swidth=$i$sheight=$i$sxoffset=$i$syoffset=$i$sxadvance=$i", charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX)
+    result.chars.add(CharInfo(
+      value: charId,
+      rec: Rectangle(x: charX, y: charY, width: charWidth, height: charHeight),
+      offsetX: charOffsetX,
+      offsetY: charOffsetY,
+      advanceX: charAdvanceX
+    ))
+  
+  info("[$1] Bitmap font loaded successfully" % filename)
+    
