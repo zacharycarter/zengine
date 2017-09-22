@@ -806,7 +806,7 @@ proc zglPushMatrix*() =
     error("Stack Buffer Overflow (MAX $1 Matrix)" % $MATRIX_STACK_SIZE)
 
   stack[stackCounter] = currentMatrix[]
-  zglLoadIdentity()
+  currentMatrix[] = stack[stackCounter]
   inc(stackCounter)
 
   if currentMatrixMode == MatrixMode.ZGLModelView:
