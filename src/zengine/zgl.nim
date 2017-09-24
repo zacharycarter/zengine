@@ -1,4 +1,17 @@
-import logging, math, opengl, sdl2, strutils, util, os, tables, assimp, glm
+import math, opengl, sdl2, strutils, util, tables, assimp, glm
+
+when not defined emscripten:
+  import logging, os
+
+when defined emscripten:
+  proc info(msg: cstring) =
+    echo msg
+  proc debug(msg: cstring) =
+    echo msg
+  proc warn(msg: cstring) =
+    echo msg
+  proc error(msg: cstring) =
+    echo msg
 
 const 
   MATRIX_STACK_SIZE = 16
@@ -49,7 +62,10 @@ type
     vCounter: int # vertex position counter to process (and draw) from full buffer
     tcCounter: int # vertex texcoord counter to process (and draw) from full buffer
     cCounter: int # vertex color counter to process (and draw) from full buffer
-    vertices: seq[GLdouble] # vertex position (XYZ - 3 components per vertex) (shader-location = 0)
+    when defined emscripten:
+      vertices: seq[GLfloat] # vertex position (XYZ - 3 components per vertex) (shader-location = 0)
+    else:
+      vertices: seq[GLdouble] # vertex position (XYZ - 3 components per vertex) (shader-location = 0)
     texCoords: seq[GLfloat] # vertex texture coordinates (UV - 2 components per vertex) (shader-location = 1)
     colors: seq[cuchar] # vertex colors (RGBA - 4 components per vertex) (shader-location = 3)
     indices: seq[GLushort] # vertex indices (in case vertex data comes indexed) (6 indices per quad)
@@ -297,25 +313,31 @@ proc loadShader*(vsFilePath, fsFilePath: string): Shader =
   var 
     vsFileContent = ""
     fsFileContent = ""
-  if fileExists(vsFilePath):
+  when not defined emscripten:
+    if fileExists(vsFilePath):
+      vsFileContent = readFile(vsFilePath)
+    if fileExists(fsFilePath):
+      fsFileContent = readFile(fsFilePath)
+  else:
     vsFileContent = readFile(vsFilePath)
-  if fileExists(fsFilePath):
     fsFileContent = readFile(fsFilePath)
   
+    echo "HERE2"
   result.id = loadShaderProgram(vsFileContent, fsFileContent)
 
   if result.id != 0:
     loadDefaultShaderLocations(result)
 
 proc loadDefaultShader(): Shader =
-
-  let vDefaultShaderStr = """
-    #version 330
-    layout(location=0) in vec3 inPosition;
-    layout(location=1) in vec2 inTexCoord0;
-    layout(location=2) in vec4 inColor;
-    out vec2 exFragTexCoord;
-    out vec4 exColor;
+  var vDefaultShaderStr, fDefaultShaderStr: string
+  when defined emscripten:
+    vDefaultShaderStr = """
+    #version 100
+    attribute vec3 inPosition;
+    attribute vec2 inTexCoord0;
+    attribute vec4 inColor;
+    varying vec2 exFragTexCoord;
+    varying vec4 exColor;
     uniform mat4 mvpMatrix;
     void main() {
       exFragTexCoord = inTexCoord0;
@@ -324,20 +346,50 @@ proc loadDefaultShader(): Shader =
     }
   """
 
-  let fDefaultShaderStr = """
-    #version 330
-    in vec2 exFragTexCoord;
-    in vec4 exColor;
-    out vec4 outColor;
+  fDefaultShaderStr = """
+    #version 100
+    precision mediump float;
+    varying vec2 exFragTexCoord;
+    varying vec4 exColor;
 
     uniform sampler2D texture0;
     uniform vec4 colDiffuse;
 
     void main() {
-        vec4 texelColor = texture(texture0, exFragTexCoord);
-        outColor = texelColor * colDiffuse * exColor;
+        vec4 texelColor = texture2D(texture0, exFragTexCoord);
+        gl_FragColor = texelColor * colDiffuse * exColor;
     }
   """
+  when not defined emscripten:
+    vDefaultShaderStr = """
+      #version 330
+      layout(location=0) in vec3 inPosition;
+      layout(location=1) in vec2 inTexCoord0;
+      layout(location=2) in vec4 inColor;
+      out vec2 exFragTexCoord;
+      out vec4 exColor;
+      uniform mat4 mvpMatrix;
+      void main() {
+        exFragTexCoord = inTexCoord0;
+        exColor = inColor;
+        gl_Position = mvpMatrix * vec4(inPosition, 1.0);
+      }
+    """
+
+    fDefaultShaderStr = """
+      #version 330
+      in vec2 exFragTexCoord;
+      in vec4 exColor;
+      out vec4 outColor;
+
+      uniform sampler2D texture0;
+      uniform vec4 colDiffuse;
+
+      void main() {
+          vec4 texelColor = texture(texture0, exFragTexCoord);
+          outColor = texelColor * colDiffuse * exColor;
+      }
+    """
 
   result.id = loadShaderProgram(vDefaultShaderStr, fDefaultShaderStr)
 
@@ -345,13 +397,22 @@ proc loadDefaultShader(): Shader =
     loadDefaultShaderLocations(result)
 
 proc loadDefaultBuffers() =
-  lines.vertices = newSeq[GLdouble](3*2*MAX_LINES_BATCH)
+  when defined emscripten:
+    lines.vertices = newSeq[GLfloat](3*2*MAX_LINES_BATCH)
+  else:
+    lines.vertices = newSeq[GLdouble](3*2*MAX_LINES_BATCH)
   lines.colors = newSeq[cuchar](4*2*MAX_LINES_BATCH)
 
-  triangles.vertices = newSeq[GLdouble](3*3*MAX_TRIANGLES_BATCH)
+  when defined emscripten:
+    triangles.vertices = newSeq[GLfloat](3*3*MAX_TRIANGLES_BATCH)
+  else:
+    triangles.vertices = newSeq[GLdouble](3*3*MAX_TRIANGLES_BATCH)
   triangles.colors = newSeq[cuchar](4*3*MAX_TRIANGLES_BATCH)
 
-  quads.vertices = newSeq[GLdouble](3*4*MAX_QUADS_BATCH)
+  when defined emscripten:  
+    quads.vertices = newSeq[GLfloat](3*4*MAX_QUADS_BATCH)
+  else:
+    quads.vertices = newSeq[GLdouble](3*4*MAX_QUADS_BATCH)
   quads.texCoords = newSeq[GLfloat](2*4*MAX_QUADS_BATCH)
   quads.colors = newSeq[cuchar](4*4*MAX_QUADS_BATCH)
   quads.indices = newSeq[GLushort](6*MAX_QUADS_BATCH)
@@ -368,14 +429,18 @@ proc loadDefaultBuffers() =
     inc(k)
     inc(i, 6)
 
-  glGenVertexArrays(1, addr lines.vaoId)
-  glBindVertexArray(lines.vaoId)
+  when not defined emscripten:
+    glGenVertexArrays(1, addr lines.vaoId)
+    glBindVertexArray(lines.vaoId)
 
   glGenBuffers(1, addr lines.vboId[0])
   glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[0])
   glBufferData(GL_ARRAY_BUFFER, sizeof(GLdouble)*3*2*MAX_LINES_BATCH, addr lines.vertices[0], GL_DYNAMIC_DRAW)
   glEnableVertexAttribArray(currentShader.vertexLoc)
-  glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_DOUBLE, false, 0, nil)
+  when defined emscripten:
+    glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_FLOAT, false, 0, nil)
+  else:
+    glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_DOUBLE, false, 0, nil)
 
   glGenBuffers(1, addr lines.vboId[1]);
   glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[1]);
@@ -385,14 +450,18 @@ proc loadDefaultBuffers() =
 
   info("[VAO ID $1] Default buffers VAO initialized successfully (lines)" % $lines.vaoId.int)
 
-  glGenVertexArrays(1, addr triangles.vaoId)
-  glBindVertexArray(triangles.vaoId)
+  when not defined emscripten:
+    glGenVertexArrays(1, addr triangles.vaoId)
+    glBindVertexArray(triangles.vaoId)
 
   glGenBuffers(1, addr triangles.vboId[0])
   glBindBuffer(GL_ARRAY_BUFFER, triangles.vboId[0])
   glBufferData(GL_ARRAY_BUFFER, sizeof(GLdouble)*3*3*MAX_TRIANGLES_BATCH, addr triangles.vertices[0], GL_DYNAMIC_DRAW)
   glEnableVertexAttribArray(currentShader.vertexLoc)
-  glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_DOUBLE, false, 0, nil)
+  when defined emscripten:
+    glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_FLOAT, false, 0, nil)
+  else:
+    glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_DOUBLE, false, 0, nil)
 
   glGenBuffers(1, addr triangles.vboId[1]);
   glBindBuffer(GL_ARRAY_BUFFER, triangles.vboId[1]);
@@ -402,14 +471,18 @@ proc loadDefaultBuffers() =
 
   info("[VAO ID $1] Default buffers VAO initialized successfully (triangles)" % $triangles.vaoId.int)
 
-  glGenVertexArrays(1, addr quads.vaoId)
-  glBindVertexArray(quads.vaoId)
+  when not defined emscripten:
+    glGenVertexArrays(1, addr quads.vaoId)
+    glBindVertexArray(quads.vaoId)
 
   glGenBuffers(1, addr quads.vboId[0])
   glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[0])
-  glBufferData(GL_ARRAY_BUFFER, sizeof(GLdouble)*3*4*MAX_QUADS_BATCH, addr quads.vertices[0], GL_DYNAMIC_DRAW)
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3*4*MAX_QUADS_BATCH, addr quads.vertices[0], GL_DYNAMIC_DRAW)
   glEnableVertexAttribArray(currentShader.vertexLoc)
-  glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_DOUBLE, false, 0, nil)
+  when defined emscripten:
+    glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_FLOAT, false, 0, nil)
+  else:
+    glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_DOUBLE, false, 0, nil)
 
   glGenBuffers(1, addr quads.vboId[1])
   glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[1])
@@ -429,8 +502,8 @@ proc loadDefaultBuffers() =
 
   info("[VAO ID $1] Default buffers VAO initialized successfully (quads)" % $quads.vaoId.int)
 
-
-  glBindVertexArray(0)
+  when not defined emscripten:
+    glBindVertexArray(0)
 
 proc zglLoadTexture*(data: pointer, width, height: int, pixelFormat: uint32, mipmapCount: int): GLuint =
   glBindTexture(GL_TEXTURE_2D, 0)
@@ -442,9 +515,15 @@ proc zglLoadTexture*(data: pointer, width, height: int, pixelFormat: uint32, mip
   glBindTexture(GL_TEXTURE_2D, id)
 
   if sdl2.SDL_BYTESPERPIXEL(pixelFormat) == 4:
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+    when defined emscripten:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
+    else:  
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8.ord, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data)
   else:
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+    when defined emscripten:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
+    else:
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8.ord, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data)
 
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
@@ -500,7 +579,8 @@ proc zglInit*(width, height: int) =
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA) # Color blending function (how colors are mixed)
   glEnable(GL_BLEND)
 
-  glEnable(GL_MULTISAMPLE)
+  when not defined emscripten:
+    glEnable(GL_MULTISAMPLE)
 
   glCullFace(GL_BACK)
   glFrontFace(GL_CCW)
@@ -519,7 +599,7 @@ proc zglClearScreenBuffers*() =
 proc zglBegin*(mode: DrawMode) =
   currentDrawMode = mode
 
-proc zglVertex3f*(x, y, z: GLdouble) =
+proc zglVertex3f*(x, y, z: GLfloat) =
   if useTempBuffer:
     tempBuffer[tempBufferCount].x = x
     tempBuffer[tempBufferCount].y = y
@@ -647,7 +727,6 @@ proc drawDefaultBuffers() =
   if lines.vCounter > 0 or quads.vCounter > 0 or triangles.vCounter > 0:
     glUseProgram(currentShader.id)
 
-    # var matMVP = matrixMultiply(modelView, projection)
     var matMVP = transpose(modelView * projection)
 
     var matMVPFloatArray = matrixToFloat(matMVP)
@@ -665,36 +744,69 @@ proc drawDefaultBuffers() =
     glBindTexture(GL_TEXTURE_2D, 0)
 
   if triangles.vCounter > 0:
+    glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, whiteTexture)
 
-    glBindVertexArray(triangles.vaoId)
+    when not defined emscripten:
+      glBindVertexArray(triangles.vaoId)
+    else:
+      glBindBuffer(GL_ARRAY_BUFFER, triangles.vboId[0]);
+      glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_FLOAT, GL_FALSE, 0, nil);
+      glEnableVertexAttribArray(currentShader.vertexLoc);
+
+      glBindBuffer(GL_ARRAY_BUFFER, triangles.vboId[1]);
+      glVertexAttribPointer(currentShader.colorLoc, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil);
+      glEnableVertexAttribArray(currentShader.colorLoc);
 
     glDrawArrays(GL_TRIANGLES, 0, triangles.vCounter)
 
+    when defined emscripten:
+      glBindBuffer(GL_ARRAY_BUFFER, 0)
     glBindTexture(GL_TEXTURE_2D, 0)
 
   if quads.vCounter > 0:
-
     var
       quadsCount = 0
       numIndicesToProcess = 0
       indicesOffset = 0
+    
+    when not defined emscripten:
+      glBindVertexArray(quads.vaoId)
+    else:
+      # Bind vertex attrib: position (shader-location = 0)
+      glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[0]);
+      glVertexAttribPointer(currentShader.vertexLoc, 3, cGL_FLOAT, GL_FALSE, 0, nil);
+      glEnableVertexAttribArray(currentShader.vertexLoc);
 
-    glBindVertexArray(quads.vaoId)
+      # Bind vertex attrib: texcoord (shader-location = 1)
+      glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[1]);
+      glVertexAttribPointer(currentShader.texCoordLoc, 2, cGL_FLOAT, GL_FALSE, 0, nil);
+      glEnableVertexAttribArray(currentShader.texCoordLoc);
+
+      # Bind vertex attrib: color (shader-location = 3)
+      glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[2]);
+      glVertexAttribPointer(currentShader.colorLoc, 4, cGL_UNSIGNED_BYTE, GL_TRUE, 0, nil);
+      glEnableVertexAttribArray(currentShader.colorLoc);
+
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, quads.vboId[3]);
 
     for i in 0..<drawsCounter:
       quadsCount = int draws[i].vertexCount/4
       numIndicesToProcess = quadsCount*6
 
       glBindTexture(GL_TEXTURE_2D, draws[i].textureId)
-
       glDrawElements(GL_TRIANGLES, numIndicesToProcess.GLsizei, GL_UNSIGNED_SHORT, cast[ptr GLvoid](sizeof(GLushort)*indicesOffset))
 
       indicesOffset += int draws[i].vertexCount/4*6
 
+    when defined emscripten:
+      glBindBuffer(GL_ARRAY_BUFFER, 0)
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0)
+
     glBindTexture(GL_TEXTURE_2D, 0)
     
-  glBindVertexArray(0)
+  when not defined emscripten:
+    glBindVertexArray(0)
 
   glUseProgram(0)
 
@@ -717,7 +829,8 @@ proc drawDefaultBuffers() =
 
 proc updateDefaultBuffers() =
   if lines.vCounter > 0:
-    glBindVertexArray(lines.vaoId)
+    when not defined emscripten:
+      glBindVertexArray(lines.vaoId)
 
     glBindBuffer(GL_ARRAY_BUFFER, lines.vboId[0])
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLdouble)*3*lines.vCounter, addr lines.vertices[0])
@@ -726,7 +839,8 @@ proc updateDefaultBuffers() =
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int)*4*lines.cCounter, addr lines.colors[0])
 
   if triangles.vCounter > 0:
-    glBindVertexArray(triangles.vaoId)
+    when not defined emscripten:
+      glBindVertexArray(triangles.vaoId)
 
     glBindBuffer(GL_ARRAY_BUFFER, triangles.vboId[0])
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLdouble)*3*triangles.vCounter, addr triangles.vertices[0])
@@ -735,10 +849,14 @@ proc updateDefaultBuffers() =
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(int)*4*triangles.cCounter, addr triangles.colors[0])
 
   if quads.vCounter > 0:
-    glBindVertexArray(quads.vaoId)
+    when not defined emscripten:
+      glBindVertexArray(quads.vaoId)
 
     glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[0])
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLdouble)*3*quads.vCounter, addr quads.vertices[0])
+    when defined emscripten:
+      glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat)*3*quads.vCounter, addr quads.vertices[0])
+    else:
+      glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLdouble)*3*quads.vCounter, addr quads.vertices[0])
 
     glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[1])
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat)*2*quads.vCounter, addr quads.texcoords[0])
@@ -746,7 +864,8 @@ proc updateDefaultBuffers() =
     glBindBuffer(GL_ARRAY_BUFFER, quads.vboId[2])
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(cuchar)*4*quads.vCounter, addr quads.colors[0])
   
-  glBindVertexArray(0)
+  when not defined emscripten:
+    glBindVertexArray(0)
 
 proc zglDraw*() =
   updateDefaultBuffers()
@@ -984,7 +1103,10 @@ proc zglLoadModel*(model: var Model, dynamic: bool) =
     glBindBuffer(GL_ARRAY_BUFFER, vboId[6])
     glBufferData(GL_ARRAY_BUFFER, sizeof(Bone) * model.bones.len, addr model.bones[0], drawHint);
     glEnableVertexAttribArray(6)
-    glVertexAttribIPointer(6, 4, cGL_INT, GLsizei sizeof(Bone), nil)
+    when not defined emscripten:
+      glVertexAttribIPointer(6, 4, cGL_INT, GLsizei sizeof(Bone), nil)
+    else:
+      glVertexAttribPointer(6, 4, cGL_SHORT, GL_FALSE, GLsizei sizeof(Bone), nil)
     glEnableVertexAttribArray(7)  
     glVertexAttribPointer(7, 4, cGL_FLOAT, GL_FALSE, GLSizei sizeof(Bone), cast[pointer](sizeof(array[4, GLint])));
   else:
@@ -1083,7 +1205,10 @@ proc zglDrawModel*(model: Model) =
       glUniform1i(material.shader.mapTexture2Loc, 2)
 
     if model.indices != nil:
-      glDrawElementsBaseVertex(GL_TRIANGLES, meshEntry.indexCount, GL_UNSIGNED_SHORT, cast[pointer](sizeof(GLushort) * int meshEntry.baseIndex), meshEntry.baseVertex)
+      when not defined emscripten:
+        glDrawElementsBaseVertex(GL_TRIANGLES, meshEntry.indexCount, GL_UNSIGNED_SHORT, cast[pointer](sizeof(GLushort) * int meshEntry.baseIndex), meshEntry.baseVertex)
+      else:
+        glDrawElements(GL_TRIANGLES, meshEntry.indexCount, GL_UNSIGNED_SHORT, nil)
 
 
   glActiveTexture(GL_TEXTURE0)
@@ -1171,7 +1296,10 @@ proc zglDrawModel*(model: Model, transforms: var seq[Mat4f]) =
       glUniform1i(material.shader.mapTexture2Loc, 2)
 
     if model.indices != nil:
-      glDrawElementsBaseVertex(GL_TRIANGLES, meshEntry.indexCount, GL_UNSIGNED_SHORT, cast[pointer](sizeof(GLushort) * int meshEntry.baseIndex), meshEntry.baseVertex)
+      when not defined emscripten:
+        glDrawElementsBaseVertex(GL_TRIANGLES, meshEntry.indexCount, GL_UNSIGNED_SHORT, cast[pointer](sizeof(GLushort) * int meshEntry.baseIndex), meshEntry.baseVertex)
+      else:
+        glDrawElements(GL_TRIANGLES, meshEntry.indexCount, GL_UNSIGNED_SHORT, nil)
 
 
   glActiveTexture(GL_TEXTURE0)

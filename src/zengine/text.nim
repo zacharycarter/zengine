@@ -1,4 +1,17 @@
-import logging, zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm, os, strscans
+import zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm, strscans
+
+when not defined emscripten:
+  import logging, os
+
+when defined emscripten:
+  proc info(msg: cstring) =
+    discard
+  proc debug(msg: cstring) =
+    discard
+  proc warn(msg: cstring) =
+    discard
+  proc error(msg: cstring) =
+    discard
 
 type
   CharInfo = object
@@ -394,59 +407,60 @@ proc loadBitmapFont*(filename: string): Font =
     while input[result] != '"':
       inc(result)
     foo = input[n+1..result-1]
-
-  if not fileExists(filename):
-    warn("[$1] .fnt file could not be opened" % fileName)
-    return defaultFont
-
-  let splitFilename = filename.splitFile()
-  if not (splitFilename.ext == ".fnt"):
-    warn("[$1] font file must have extension .fnt" % fileName)
-    return defaultFont
   
-  var
-    fontSize = 0
-    texWidth, texHeight: int
-    texFileName: string
-    charsCount: int
-    base: int
+  when not defined emscripten:
+    if not fileExists(filename):
+      warn("[$1] .fnt file could not be opened" % fileName)
+      return defaultFont
 
-  let fontFileContent = readFile(filename)
-  var rest = substr(fontFileContent, fontFileContent.find("lineHeight"), fontFileContent.len)
+    let splitFilename = filename.splitFile()
+    if not (splitFilename.ext == ".fnt"):
+      warn("[$1] font file must have extension .fnt" % fileName)
+      return defaultFont
+    
+    var
+      fontSize = 0
+      texWidth, texHeight: int
+      texFileName: string
+      charsCount: int
+      base: int
 
-  
-  discard scanf(rest, "lineHeight=$i base=$i scaleW=$i scaleH=$i", fontSize, base, texWidth, texHeight)
+    let fontFileContent = readFile(filename)
+    var rest = substr(fontFileContent, fontFileContent.find("lineHeight"), fontFileContent.len)
 
-  rest = subStr(rest, rest.find("file"), rest.len)
+    
+    discard scanf(rest, "lineHeight=$i base=$i scaleW=$i scaleH=$i", fontSize, base, texWidth, texHeight)
 
-  discard scanf(rest, "file=${quotedString()}", texFileName)
+    rest = subStr(rest, rest.find("file"), rest.len)
 
-  let texFilePath = splitFilename.dir & DirSep & texFileName
-  if not fileExists(texFilePath):
-    warn("[$1] texture file for font does not exist" % fileName)
-    return defaultFont
+    discard scanf(rest, "file=${quotedString()}", texFileName)
 
-  result.texture = loadTexture(texFilePath)
-  
-  rest = subStr(rest, rest.find("count"), rest.len)
-  discard scanf(rest, "count=$i", charsCount)
+    let texFilePath = splitFilename.dir & DirSep & texFileName
+    if not fileExists(texFilePath):
+      warn("[$1] texture file for font does not exist" % fileName)
+      return defaultFont
 
-  result.baseSize = fontSize
-  result.charCount = charsCount
-  result.chars = @[]
+    result.texture = loadTexture(texFilePath)
+    
+    rest = subStr(rest, rest.find("count"), rest.len)
+    discard scanf(rest, "count=$i", charsCount)
 
-  var
-    charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX: int
-  
-  for line in splitLines subStr(rest, rest.find("char"), rest.len):
-    discard scanf(line, "char id=$i$sx=$i$sy=$i$swidth=$i$sheight=$i$sxoffset=$i$syoffset=$i$sxadvance=$i", charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX)
-    result.chars.add(CharInfo(
-      value: charId,
-      rec: Rectangle(x: charX, y: charY, width: charWidth, height: charHeight),
-      offsetX: charOffsetX,
-      offsetY: charOffsetY,
-      advanceX: charAdvanceX
-    ))
-  
-  info("[$1] Bitmap font loaded successfully" % filename)
+    result.baseSize = fontSize
+    result.charCount = charsCount
+    result.chars = @[]
+
+    var
+      charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX: int
+    
+    for line in splitLines subStr(rest, rest.find("char"), rest.len):
+      discard scanf(line, "char id=$i$sx=$i$sy=$i$swidth=$i$sheight=$i$sxoffset=$i$syoffset=$i$sxadvance=$i", charId, charX, charY, charWidth, charHeight, charOffsetX, charOffsetY, charAdvanceX)
+      result.chars.add(CharInfo(
+        value: charId,
+        rec: Rectangle(x: charX, y: charY, width: charWidth, height: charHeight),
+        offsetX: charOffsetX,
+        offsetY: charOffsetY,
+        advanceX: charAdvanceX
+      ))
+    
+    info("[$1] Bitmap font loaded successfully" % filename)
     

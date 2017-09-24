@@ -1,29 +1,40 @@
-import text, logging, sdl2, sdl2.image as sdl_image, sdl2.ttf as sdl_ttf, opengl, zgl, math, glm
+import text, sdl2, sdl2.image as sdl_image, opengl, zgl, math, glm
+
+when not defined emscripten:
+  import logging
 
 
 var 
   window: sdl2.WindowPtr
   glCtx: sdl2.GlContextPtr
-  consoleLogger: ConsoleLogger
   renderOffsetX, renderOffsetY = 0
   previousKeyboardState, currentKeyboardState: array[0 .. SDL_NUM_SCANCODES.int, uint8]
   previousMouseState, currentMouseState: uint8
   mousePositionX, mousePositionY: cint
+
+when not defined emscripten:
+  var consoleLogger: ConsoleLogger
 
 proc setupViewport() =
   let size = sdl2.getSize(window)
   zglViewport(renderOffsetX div 2, renderOffsetY div 2, size.x - renderOffsetX, size.y - renderOffsetY)
 
 proc init*(width, height: int, mainWindowTitle: string) =
-  consoleLogger = newConsoleLogger()
-  addHandler(consoleLogger)
+  when not defined emscripten:
+    consoleLogger = newConsoleLogger()
+    addHandler(consoleLogger)
+  
   sdl2.init(INIT_TIMER or INIT_VIDEO)
   discard sdl_image.init()
 
-  doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
-  doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)
-  doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_FLAGS        , SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
-  doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE)
+  when not defined emscripten:
+    doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3)
+    doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3)
+    doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_FLAGS        , SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG)
+    doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_PROFILE_MASK , SDL_GL_CONTEXT_PROFILE_CORE)
+  else:
+    doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2)
+    doAssert 0 == glSetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1)
 
   doAssert 0 == glSetAttribute(SDL_GL_RED_SIZE, 8)
   doAssert 0 == glSetAttribute(SDL_GL_GREEN_SIZE, 8)
@@ -44,14 +55,16 @@ proc init*(width, height: int, mainWindowTitle: string) =
   glCtx = window.glCreateContext()
 
   if glCtx.isNil:
+    echo "QUITTING GL CTX IS NIL"
     quit(QUIT_FAILURE)
-
-  when not defined(emscripten):
-    loadExtensions()
   
+  when not defined emscripten:
+    loadExtensions()
+    
   doAssert 0 == glMakeCurrent(window, glCtx)  
-
-  doAssert 0 == sdl2.glSetSwapInterval(1)
+  
+  when not defined emscripten:
+    doAssert 0 == sdl2.glSetSwapInterval(1)
 
   zglInit(width, height)
 
@@ -65,7 +78,8 @@ proc init*(width, height: int, mainWindowTitle: string) =
 
   glClearColor(0.19, 0.19, 0.19, 1.0)
 
-  loadDefaultFont()
+  when not defined emscripten:
+    loadDefaultFont()
   
   currentKeyboardState = sdl2.getKeyboardState()[]
 

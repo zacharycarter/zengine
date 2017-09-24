@@ -1,0 +1,1 @@
+echo readFile("examples/data/shaders/glsl100/foward.fs")
