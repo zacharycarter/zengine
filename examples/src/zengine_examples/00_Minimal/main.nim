@@ -1,6 +1,6 @@
 # Minimal example to open up a zengine window
 
-import zengine, opengl, glm, jsbind.emscripten, times, sdl2, macros
+import zengine, opengl, glm, jsbind.emscripten, times, sdl2
 
 
 # Constants
@@ -34,8 +34,8 @@ proc startApplication() =
   zengine.init(ScreenWidth, ScreenHeight, "Zengine example: 00_Minimal")
   clock.start()
   camera.setMode(CameraMode.Free)
-  model = loadModel("examples/data/models/mutant/mutant_idle.dae")
   shader = loadShader("examples/data/shaders/glsl100/animation/forward.vs", "examples/data/shaders/glsl100/animation/forward.fs")
+  model = loadModel("examples/data/models/mutant/mutant_idle.dae", shader)
   
 proc runGC() =
   let t = epochTime()
@@ -89,7 +89,7 @@ proc mainLoopInner() =
   drawCube(vec3f(-16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(vec3f(16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(vec3f(0.0, 2.5, 16.0), (0.0, 0.0, 1.0, 0.0), 32.0, 5.0, 1.0, WHITE)
-  drawModel(model, WHITE, clock.timeElapsed() * 0.001)
+  drawModel(model, WHITE, clock.timeElapsed() * 1000)
   end3dMode()
   endDrawing()
   swapBuffers()

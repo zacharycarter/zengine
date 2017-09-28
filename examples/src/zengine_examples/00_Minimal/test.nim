@@ -1,1 +1,0 @@
-echo readFile("examples/data/shaders/glsl100/animation/forward.fs")

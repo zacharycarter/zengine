@@ -315,8 +315,6 @@ proc init(material: var Material, some: PMaterial, filename: string, shader: Sha
       let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
 
       material.texSpecular = loadTexture(filename)
-    else:
-      material.texDiffuse = getDefaultTexture()
   
   material.shader = shader
   
@@ -480,12 +478,18 @@ proc boneTransform*(model: var Model, timeInSeconds: float, transforms: var seq[
   transforms = newSeq[Mat4f](model.numBones)
 
   for i in 0..<model.numBones:
-    transforms[int i] = model.boneInfos[int i].finalTransformation
+    when not defined emscripten:
+      transforms[int i] = model.boneInfos[int i].finalTransformation
+    else:
+      transforms[int i] = transpose(model.boneInfos[int i].finalTransformation)
 
 proc addBoneData(bone: var Bone, boneIndex: int, weight: float) =
   for i in 0..<4:
     if bone.weights[i] == 0.0:
-      bone.ids[i] = GLint boneIndex
+      when not defined emscripten:
+        bone.ids[i] = GLint boneIndex
+      else:
+        bone.ids[i] = GLfloat boneIndex
       bone.weights[i] = weight
       return
   

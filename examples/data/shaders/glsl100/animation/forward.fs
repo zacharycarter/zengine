@@ -1,12 +1,12 @@
 #version 100
-attribute vec3 inPosition;
-attribute vec2 inTexCoord0;
-attribute vec4 inColor;
+precision mediump float;
 varying vec2 exFragTexCoord;
 varying vec4 exColor;
-uniform mat4 mvpMatrix;
+
+uniform sampler2D texture0;
+uniform vec4 colDiffuse;
+
 void main() {
-    exFragTexCoord = inTexCoord0;
-    exColor = inColor;
-    gl_Position = mvpMatrix * vec4(inPosition, 1.0);
+    vec4 texelColor = texture2D(texture0, exFragTexCoord);
+    gl_FragColor = texelColor;
 }
