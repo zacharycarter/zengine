@@ -201,8 +201,7 @@ pointLight.radius = 3.0
 
 setShaderLightsValues(shader)
 
-var clock = Timer()
-clock.start()
+start()
 
 while running:
   mouseWheelMovement = 0
@@ -231,7 +230,7 @@ while running:
 
   camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
   
-  clock.tick()
+  tick()
 
   beginDrawing()
   clearBackground(BLACK)
@@ -241,7 +240,7 @@ while running:
   drawCube(vec3f(-16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(vec3f(16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(vec3f(0.0, 2.5, 16.0), (0.0, 0.0, 1.0, 0.0), 32.0, 5.0, 1.0, WHITE)
-  drawModel(model, WHITE, clock.timeElapsed() * 0.001)
+  drawModel(model, WHITE, timeElapsed() * 0.001)
 
   drawLight(pointLight)
   

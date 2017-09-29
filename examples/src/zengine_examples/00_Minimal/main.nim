@@ -20,7 +20,6 @@ var
   mouseYRel = 0
   evt: sdl2.Event
   mainLoopRunning = true
-  clock = Timer()
   model: Model
   shader: Shader
 
@@ -32,7 +31,7 @@ template requestGCFullCollect*() =
 
 proc startApplication() =
   zengine.init(ScreenWidth, ScreenHeight, "Zengine example: 00_Minimal")
-  clock.start()
+  start()
   camera.setMode(CameraMode.Free)
   shader = loadShader("examples/data/shaders/glsl100/animation/forward.vs", "examples/data/shaders/glsl100/animation/forward.fs")
   model = loadModel("examples/data/models/mutant/mutant_idle.dae", shader)
@@ -80,7 +79,7 @@ proc mainLoopInner() =
 
   camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
   
-  clock.tick()
+  tick()
 
   beginDrawing()
   clearBackground(ZENGRAY)
@@ -89,7 +88,7 @@ proc mainLoopInner() =
   drawCube(vec3f(-16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(vec3f(16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(vec3f(0.0, 2.5, 16.0), (0.0, 0.0, 1.0, 0.0), 32.0, 5.0, 1.0, WHITE)
-  drawModel(model, WHITE, clock.timeElapsed() * 1000)
+  drawModel(model, WHITE, timeElapsed() * 1000)
   end3dMode()
   endDrawing()
   swapBuffers()

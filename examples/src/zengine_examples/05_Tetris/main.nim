@@ -52,8 +52,8 @@ var
 let targetFramePeriod = 16.0 # 16 milliseconds corresponds to 60 fps
 var frameTime: float64 = 0
 
-proc limitFrameRate(clock: Timer) =
-  let now = timeElapsed(clock) * 1000
+proc limitFrameRate() =
+  let now = timeElapsed() * 1000
   if frameTime > now:
     delay(uint32 frameTime - now) # Delay to maintain steady frame rate
   frameTime += targetFramePeriod
@@ -95,8 +95,8 @@ proc initGame() =
 
   pollInput()
 
-proc getRandomPiece(clock: Timer) =
-  randomize(clock.timeElapsed().int64)
+proc getRandomPiece() =
+  randomize(timeElapsed().int64)
   let r = random(7)
 
   for i in 0..<4:
@@ -121,19 +121,19 @@ proc getRandomPiece(clock: Timer) =
     else:
       discard
 
-proc createPiece(clock: Timer): bool =
+proc createPiece(): bool =
   pieceRow = 0
   pieceCol = (Columns - 4) div 2
 
   if beginPlay:
-    getRandomPiece(clock) 
+    getRandomPiece() 
     beginPlay = false
 
   for i in 0..<4:
     for j in 0..<4:
       piece[i][j] = incomingPiece[i][j]
 
-  getRandomPiece(clock)
+  getRandomPiece()
 
   for col in pieceCol..<pieceCol + 4:
     for row in 0..<4:
@@ -311,7 +311,7 @@ proc resolveTurnMovement(): bool =
   result = false
 
 
-proc updateGame(clock: Timer) =
+proc updateGame() =
   pollInput()
   if not gameOver:
     if isKeyPressed(K_p): 
@@ -320,7 +320,7 @@ proc updateGame(clock: Timer) =
     if not pause:
       if not lineToDelete:
         if not pieceActive:
-          pieceActive = createPiece(clock)
+          pieceActive = createPiece()
 
           fastFallMovementCounter = 0
         else:
@@ -377,8 +377,8 @@ proc updateGame(clock: Timer) =
 
 
 
-proc drawGame(clock: var Timer) = 
-  clock.tick()  
+proc drawGame() = 
+  tick()  
 
   beginDrawing()
 
@@ -461,8 +461,7 @@ var
   evt = sdl2.defaultEvent
   running = true
 
-var clock = Timer()
-clock.start()
+start()
 
 while running:
   while sdl2.pollEvent(evt):
@@ -478,11 +477,11 @@ while running:
       else:
         discard
 
-  updateGame(clock)
+  updateGame()
 
-  drawGame(clock)
+  drawGame()
 
-  limitFrameRate(clock)
+  limitFrameRate()
 
 disposeGame()
 
