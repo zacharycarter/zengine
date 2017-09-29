@@ -26,7 +26,7 @@ import sdl2
 #
 # I'd recommend reading the documentation for the `start()`, `tick()`, and
 # `deltaTime()` procs to get a better idea how they work.
-type Timer* = object
+var
   ticks: uint64                                 # How many times the timer has "ticked,"
   timeSinceLastTick: float64                    # Amount of time (in seconds) since the last tick
   startTime, currentTime, previousTime: uint64  # What actually measures the time under the hood
@@ -37,16 +37,16 @@ let frequency = sdl2.getPerformanceFrequency().float64
 
 
 # Starts the timer.  You can call this multiple times to reset it.
-proc start*(self: var Timer) =
-  self.startTime = sdl2.getPerformanceCounter()
-  self.previousTime = self.startTime
-  self.currentTime = self.startTime
+proc start*() =
+  startTime = sdl2.getPerformanceCounter()
+  previousTime = startTime
+  currentTime = startTime
 
 
 # Returns total number of ticks the Timer has endured.  You will probably not
 # need to use this at all.
-proc totalTicks*(self: Timer) : uint64 {.inline.} =
-  self.ticks
+proc totalTicks*() : uint64 {.inline.} =
+  ticks
 
 
 # Returns the time elapsed between the current tick and the previous tick.  This
@@ -55,20 +55,20 @@ proc totalTicks*(self: Timer) : uint64 {.inline.} =
 # `0.01`.  If it was logically updating at 60 FPS, it would be more like
 # `0.016667`.
 # Return value is in seconds.
-proc deltaTime*(self: Timer) : float64 {.inline.} =
-  self.timeSinceLastTick
+proc deltaTime*() : float64 {.inline.} =
+  timeSinceLastTick
 
 
 # Returns the time elapsed since `Timer.init()` has been called.  Return value
 # is in seconds.
-proc timeElapsed*(self: Timer) : float64 {.inline.} =
-  (self.currentTime - self.startTime).float64 / frequency
+proc timeElapsed*() : float64 {.inline.} =
+  (currentTime - startTime).float64 / frequency
 
 
 # Ticks the timer forward.
-proc tick*(self: var Timer) {.inline.} =
-  self.currentTime = sdl2.getPerformanceCounter()
-  self.timeSinceLastTick = (self.currentTime - self.previousTime).float64 / frequency
-  self.previousTime = self.currentTime
-  self.ticks.inc()
+proc tick*() {.inline.} =
+  currentTime = sdl2.getPerformanceCounter()
+  timeSinceLastTick = (currentTime - previousTime).float64 / frequency
+  previousTime = currentTime
+  ticks.inc()
 
