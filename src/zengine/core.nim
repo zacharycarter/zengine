@@ -1,4 +1,4 @@
-import text, sdl2, sdl2.image as sdl_image, opengl, zgl, math, glm
+import text, timer, sdl2, sdl2.image as sdl_image, opengl, zgl, math, glm
 
 when not defined emscripten:
   import logging
@@ -11,6 +11,7 @@ var
   previousKeyboardState, currentKeyboardState: array[0 .. SDL_NUM_SCANCODES.int, uint8]
   previousMouseState, currentMouseState: uint8
   mousePositionX, mousePositionY: cint
+  clock*: Timer
 
 when not defined emscripten:
   var consoleLogger: ConsoleLogger

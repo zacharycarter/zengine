@@ -1,6 +1,9 @@
 # Minimal example to open up a zengine window
 
-import zengine, opengl, glm, jsbind.emscripten, times, sdl2
+import zengine, opengl, glm, times, sdl2
+
+when defined emscripten:
+  import jsbind.emscripten
 
 
 # Constants
@@ -20,7 +23,6 @@ var
   mouseYRel = 0
   evt: sdl2.Event
   mainLoopRunning = true
-  clock = Timer()
   model: Model
   shader: Shader
 
@@ -32,9 +34,12 @@ template requestGCFullCollect*() =
 
 proc startApplication() =
   zengine.init(ScreenWidth, ScreenHeight, "Zengine example: 00_Minimal")
-  clock.start()
+  zengine.clock.start()
   camera.setMode(CameraMode.Free)
-  shader = loadShader("examples/data/shaders/glsl100/animation/forward.vs", "examples/data/shaders/glsl100/animation/forward.fs")
+  when defined emscripten:
+    shader = loadShader("examples/data/shaders/glsl100/animation/forward.vs", "examples/data/shaders/glsl100/animation/forward.fs")
+  else:
+    shader = loadShader("examples/data/shaders/glsl330/animation/forward.vs", "examples/data/shaders/glsl330/animation/forward.fs")
   model = loadModel("examples/data/models/mutant/mutant_idle.dae", shader)
   
 proc runGC() =
@@ -80,7 +85,7 @@ proc mainLoopInner() =
 
   camera.update(mouseWheelMovement, mouseXRel, mouseYRel)
   
-  clock.tick()
+  zengine.clock.tick()
 
   beginDrawing()
   clearBackground(ZENGRAY)
@@ -89,117 +94,45 @@ proc mainLoopInner() =
   drawCube(vec3f(-16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, BLUE)
   drawCube(vec3f(16.0, 2.5, 0.0), (0.0, 0.0, 1.0, 0.0), 1.0, 5.0, 32.0, RED)
   drawCube(vec3f(0.0, 2.5, 16.0), (0.0, 0.0, 1.0, 0.0), 32.0, 5.0, 1.0, WHITE)
-  drawModel(model, WHITE, clock.timeElapsed() * 1000)
+  drawModel(model, WHITE, zengine.clock.timeElapsed() * 1000)
   end3dMode()
   endDrawing()
   swapBuffers()
-  runGC()
+  when defined emscripten:
+    runGC()
 
 var initFunc : proc()
+when defined emscripten:
 
-var initDone = false
-proc mainLoopPreload() {.cdecl.} =
-    if initDone:
-        if mainLoopRunning:
-          mainLoopInner()
-    else:
-        let r = EM_ASM_INT """
-        return (document.readyState === 'complete') ? 1 : 0;
-        """
-        if r == 1:
-            GC_disable() # GC Should only be called close to the bottom of the stack on emscripten.
-            initFunc()
-            initFunc = nil
-            initDone = true
+  var initDone = false
+  proc mainLoopPreload() {.cdecl.} =
+      if initDone:
+          if mainLoopRunning:
+            mainLoopInner()
+      else:
+          let r = EM_ASM_INT """
+          return (document.readyState === 'complete') ? 1 : 0;
+          """
+          if r == 1:
+              GC_disable() # GC Should only be called close to the bottom of the stack on emscripten.
+              initFunc()
+              initFunc = nil
+              initDone = true
 
 template runApplication*(initCode: typed): stmt =
   initFunc = proc() =
       initCode
-  emscripten_set_main_loop(mainLoopPreload, 0, 1)
-
+  when defined emscripten:
+    emscripten_set_main_loop(mainLoopPreload, 0, 1)
+  else:
+    initFunc()
+    while mainLoopRunning:
+      mainLoopInner()
+  
+  zengine.core.shutdown()
+    
 runApplication:
   startApplication()
   
 
-# # State variables
-# var
-#   # Window control
-#   evt = sdl2.defaultEvent
-#   running = true
 
-#   # Camera control
-#   camera = Camera(
-#     position: vec3f(4, 2, 4),
-#     target: vec3f(0, 1.8, 0),
-#     up: vec3f(0, 1, 0),
-#     fovY: 60
-#   )
-#   mouseXRel: int
-#   mouseYRel: int
-
-
-# # Use a first person camera
-# camera.setMode(CameraMode.FirstPerson)
-
-# var clock = Timer()
-# clock.start()
-
-# # Main Game loop
-# while running:
-#   # Reset
-#   mouseXRel = 0
-#   mouseYRel = 0
-
-#   # Check for new input
-#   pollInput()
-
-#   # Poll for events
-#   while sdl2.pollEvent(evt):
-#     case evt.kind:
-#       # Shutdown if X button clicked
-#       of QuitEvent:
-#         running = false
-
-#       of KeyUp:
-#         let keyEvent = cast[KeyboardEventPtr](addr evt)
-#         # Shutdown if ESC pressed
-#         if keyEvent.keysym.sym == K_ESCAPE:
-#           running = false
-
-#         # Get some info about the camera state
-#         if keyEvent.keysym.sym == K_C:
-#             echo("camera.position=" & $camera.position)
-#             echo("camera.target=" & $camera.target)
-#             echo("camera.up=" & $camera.up)
-
-#       # Update camera if mouse moved
-#       of MouseMotion:
-#         let mouseMoveEvent = cast[MouseMotionEventPtr](addr evt)
-#         mouseXRel = mouseMoveEvent.xrel
-#         mouseYRel = mouseMoveEvent.yrel
-
-#       else:
-#         discard
-
-#   # Update the camera's position
-#   camera.update(0, -mouseXrel, -mouseYRel)
-
-#   clock.tick()
-
-#   # Start drawing
-#   beginDrawing()
-#   clearBackground(BLACK)
-
-#   begin3dMode(camera)
-#   drawCube(vec3f(0, 2, 0), (0.0, 0.0, 1.0, 0.0), 1, 1, 1, RED)
-#   drawPlane(vec3f(0, 0, 0), vec2f(32, 32), GRAY)
-#   end3dMode()
-
-#   drawText("Hello zengine!", 8, 8, 16, ZColor(r: 0xFF, g: 0xFF, b: 0xFF, a: 0xFF))
-
-#   # done with drawing, display the screen
-#   endDrawing()
-#   swapBuffers()
-
-# # Shutdown
-# zengine.core.shutdown()

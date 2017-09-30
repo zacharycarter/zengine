@@ -201,8 +201,7 @@ pointLight.radius = 3.0
 
 setShaderLightsValues(shader)
 
-var clock = Timer()
-clock.start()
+zengine.clock.start()
 
 while running:
   mouseWheelMovement = 0
