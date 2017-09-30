@@ -11,6 +11,16 @@ const
   ScreenWidth = 960
   ScreenHeight = 540
 
+let targetFramePeriod = 16.0 # 16 milliseconds corresponds to 60 fps
+var frameTime: float64 = 0
+
+proc limitFrameRate() =
+  let now = zengine.clock.timeElapsed() * 1000
+  if frameTime > now:
+    delay(uint32 frameTime - now) # Delay to maintain steady frame rate
+    frameTime = 0
+  frameTime += targetFramePeriod
+
 var
   camera = Camera(
     position: vec3f(4, 2, 4),
@@ -25,6 +35,8 @@ var
   mainLoopRunning = true
   model: Model
   shader: Shader
+  startTime, endTime: float64
+  fps: int
 
 var gcRequested* = false
 var lastFullCollectTime = 0.0
@@ -59,6 +71,7 @@ proc runGC() =
           {.hint: "It is recommended to compile your project with -d:useRealtimeGC for emscripten".}
 
 proc mainLoopInner() =
+  startTime = zengine.clock.timeElapsed()
   mouseWheelMovement = 0
   mouseXRel = 0
   mouseYRel = 0
@@ -96,11 +109,25 @@ proc mainLoopInner() =
   drawCube(vec3f(0.0, 2.5, 16.0), (0.0, 0.0, 1.0, 0.0), 32.0, 5.0, 1.0, WHITE)
   drawModel(model, WHITE, zengine.clock.timeElapsed() * 1000)
   end3dMode()
+  when not defined emscripten:
+    drawText("Frame Time: $1ms" % $frameTime, 10, 10, 10, WHITE)
+  else:
+    drawText("Frame Time: $1ms" % $round((frameTime * 1000), 2), 10, 10, 10, WHITE)
+  
+  drawText("FPS: $1" % $fps, 10, 20, 10, WHITE)
   endDrawing()
   swapBuffers()
+  endTime = zengine.clock.timeElapsed()
+  fps = ((1000 - (endTime - startTime)) * (60 / 1000)).int
+
+  when not defined emscripten:
+    limitFrameRate()
+  else:
+    frameTime = endTime - startTime
+  
   when defined emscripten:
     runGC()
-
+  
 var initFunc : proc()
 when defined emscripten:
 

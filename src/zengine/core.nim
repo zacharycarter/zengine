@@ -79,8 +79,7 @@ proc init*(width, height: int, mainWindowTitle: string) =
 
   glClearColor(0.19, 0.19, 0.19, 1.0)
 
-  when not defined emscripten:
-    loadDefaultFont()
+  loadDefaultFont()
   
   currentKeyboardState = sdl2.getKeyboardState()[]
 

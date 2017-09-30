@@ -1,7 +1,7 @@
-import zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm, strscans
+import zgl, color, geom, sdl2, sdl2.image as sdl_image, opengl, texture, strutils, glm, strscans, os
 
 when not defined emscripten:
-  import logging, os
+  import logging
 
 when defined emscripten:
   proc info(msg: cstring) =
