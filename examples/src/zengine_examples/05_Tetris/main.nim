@@ -52,8 +52,8 @@ var
 let targetFramePeriod = 16.0 # 16 milliseconds corresponds to 60 fps
 var frameTime: float64 = 0
 
-proc limitFrameRate() =
-  let now = timeElapsed() * 1000
+proc limitFrameRate(clock: Timer) =
+  let now = timeElapsed(clock) * 1000
   if frameTime > now:
     delay(uint32 frameTime - now) # Delay to maintain steady frame rate
   frameTime += targetFramePeriod
@@ -95,8 +95,8 @@ proc initGame() =
 
   pollInput()
 
-proc getRandomPiece() =
-  randomize(timeElapsed().int64)
+proc getRandomPiece(clock: Timer) =
+  randomize(clock.timeElapsed().int64)
   let r = random(7)
 
   for i in 0..<4:
@@ -121,19 +121,19 @@ proc getRandomPiece() =
     else:
       discard
 
-proc createPiece(): bool =
+proc createPiece(clock: Timer): bool =
   pieceRow = 0
   pieceCol = (Columns - 4) div 2
 
   if beginPlay:
-    getRandomPiece() 
+    getRandomPiece(clock) 
     beginPlay = false
 
   for i in 0..<4:
     for j in 0..<4:
       piece[i][j] = incomingPiece[i][j]
 
-  getRandomPiece()
+  getRandomPiece(clock)
 
   for col in pieceCol..<pieceCol + 4:
     for row in 0..<4:
@@ -311,7 +311,7 @@ proc resolveTurnMovement(): bool =
   result = false
 
 
-proc updateGame() =
+proc updateGame(clock: Timer) =
   pollInput()
   if not gameOver:
     if isKeyPressed(K_p): 
@@ -320,7 +320,7 @@ proc updateGame() =
     if not pause:
       if not lineToDelete:
         if not pieceActive:
-          pieceActive = createPiece()
+          pieceActive = createPiece(clock)
 
           fastFallMovementCounter = 0
         else:
@@ -377,8 +377,8 @@ proc updateGame() =
 
 
 
-proc drawGame() = 
-  tick()  
+proc drawGame(clock: var Timer) = 
+  clock.tick()  
 
   beginDrawing()
 
@@ -461,7 +461,8 @@ var
   evt = sdl2.defaultEvent
   running = true
 
-start()
+var clock = Timer()
+clock.start()
 
 while running:
   while sdl2.pollEvent(evt):
@@ -477,11 +478,11 @@ while running:
       else:
         discard
 
-  updateGame()
+  updateGame(clock)
 
-  drawGame()
+  drawGame(clock)
 
-  limitFrameRate()
+  limitFrameRate(clock)
 
 disposeGame()
 

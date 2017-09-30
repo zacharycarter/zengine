@@ -45,7 +45,8 @@ var
   mouseXRel: int
   mouseYRel: int
 
-start()
+var clock = Timer()
+clock.start()
 
 # Main Game loop
 while running:
@@ -102,7 +103,7 @@ while running:
 
   camera.target = vec2f(float player.x + 20, float player.y + 20)
 
-  tick()
+  clock.tick()
 
   # Start drawing
   beginDrawing()

@@ -143,16 +143,17 @@ camera.setMode(CameraMode.FirstPerson)
 
 let font = loadBitmapFont("examples/data/fonts/bmfont.fnt")
 
-start()
+var clock = Timer()
+clock.start()
 
 # Main Game loop
 while running:
   # Reset
   mouseXRel = 0
   mouseYRel = 0
-  tick()
+  clock.tick()
 
-  rot += 45.0 * deltaTime()
+  rot += 45.0 * clock.deltaTime()
 
   # Check for new input
   pollInput()
