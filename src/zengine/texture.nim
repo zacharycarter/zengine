@@ -1,13 +1,26 @@
-import logging, geom, os, sdl2.image as sdl_image, sdl2, strutils, zgl, glm
+import geom, sdl2.image as sdl_image, sdl2, strutils, zgl, glm
+
+when not defined emscripten:
+  import logging, os
 
 type
   FileNotFoundError* = object of IOError
   TextureCreationError* = object of SystemError
 
+when defined emscripten:
+  proc info(msg: cstring) =
+    discard
+  proc debug(msg: cstring) =
+    discard
+  proc warn(msg: cstring) =
+    discard
+  proc error(msg: cstring) =
+    discard
 
 proc loadTexture*(filename: string): Texture2D =
-  if not fileExists(filename):
-    raise newException(FileNotFoundError, "Attempting to load non-existent texture file: $1" % filename)
+  when not defined emscripten:
+    if not fileExists(filename):
+      raise newException(FileNotFoundError, "Attempting to load non-existent texture file: $1" % filename)
   
   result.data = load(filename.cstring)
   

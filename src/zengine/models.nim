@@ -1,4 +1,18 @@
-import logging, zgl, sdl2, os, strutils, assimp, opengl, texture, color, tables, glm, math, timer
+import zgl, sdl2, strutils, assimp, opengl, texture, color, tables, glm, math, timer, os
+
+when not defined emscripten:
+  import logging
+
+when defined emscripten:
+  proc info(msg: cstring) =
+    discard
+  proc debug(msg: cstring) =
+    discard
+  proc warn(msg: cstring) =
+    discard
+  proc error(msg: cstring) =
+    discard
+  
 
 converter toMat4f*(m: TMatrix4x4) : Mat4f = 
   mat4f(
@@ -259,31 +273,48 @@ proc drawSphereWires*(centerPos: Vec3f, radius: float, rings: int, slices: int, 
 
 proc init(material: var Material, some: PMaterial, filename: string, shader: Shader) =
   var path : AIString
-  if getTexture(some, TexDiffuse, 0, addr path) == ReturnSuccess:
-    let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
-    
-    try:
-      material.texDiffuse = loadTexture(filename)
-    except:
-      error "Failed to load diffuse texture for material with filename: " % filename
-  else:
-    material.texDiffuse = getDefaultTexture()
+  when not defined emscripten:
+    if getTexture(some, TexDiffuse, 0, addr path) == ReturnSuccess:
+      let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+      
+      try:
+        material.texDiffuse = loadTexture(filename)
+      except:
+        error "Failed to load diffuse texture for material with filename: " % filename
+    else:
+      material.texDiffuse = getDefaultTexture()
 
-  if getTexture(some, TexNormals, 0, addr path) == ReturnSuccess:
-    let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+    if getTexture(some, TexNormals, 0, addr path) == ReturnSuccess:
+      let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+      
+      try:
+        material.texNormal = loadTexture(filename)
+      except:
+        error "Failed to load normal texture for material with filename: " % filename
     
-    try:
+    if getTexture(some, TexSpecular, 0, addr path) == ReturnSuccess:
+      let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+      
+      try:
+        material.texSpecular = loadTexture(filename)
+      except:
+        error "Failed to load specular texture for material with filename: " % filename
+
+  else:
+    if getTexture(some, TexDiffuse, 0, addr path) == ReturnSuccess:
+      let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+
+      material.texDiffuse = loadTexture(filename)
+    
+    if getTexture(some, TexNormals, 0, addr path) == ReturnSuccess:
+      let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+
       material.texNormal = loadTexture(filename)
-    except:
-      error "Failed to load normal texture for material with filename: " % filename
-  
-  if getTexture(some, TexSpecular, 0, addr path) == ReturnSuccess:
-    let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
     
-    try:
+    if getTexture(some, TexSpecular, 0, addr path) == ReturnSuccess:
+      let filename = getCurrentDir() & DirSep & splitPath(filename).head & DirSep & $path
+
       material.texSpecular = loadTexture(filename)
-    except:
-      error "Failed to load specular texture for material with filename: " % filename
   
   material.shader = shader
   
@@ -447,12 +478,18 @@ proc boneTransform*(model: var Model, timeInSeconds: float, transforms: var seq[
   transforms = newSeq[Mat4f](model.numBones)
 
   for i in 0..<model.numBones:
-    transforms[int i] = model.boneInfos[int i].finalTransformation
+    when not defined emscripten:
+      transforms[int i] = model.boneInfos[int i].finalTransformation
+    else:
+      transforms[int i] = transpose(model.boneInfos[int i].finalTransformation)
 
 proc addBoneData(bone: var Bone, boneIndex: int, weight: float) =
   for i in 0..<4:
     if bone.weights[i] == 0.0:
-      bone.ids[i] = GLint boneIndex
+      when not defined emscripten:
+        bone.ids[i] = GLint boneIndex
+      else:
+        bone.ids[i] = GLfloat boneIndex
       bone.weights[i] = weight
       return
   
